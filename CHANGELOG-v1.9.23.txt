@@ -1,0 +1,105 @@
+SÒNG ĐÊM v1.9.23: BẢN GHI THAY ĐỔI VÀ KẾT QUẢ KIỂM TRA
+=====================================================
+
+A. THAY ĐỔI
+-----------
+1. Tên nhân vật
+   - Chơi mới: hỏi tên (có nút Bỏ qua). Save cũ không có tên: tự dùng "Player", không hỏi lại.
+   - Đổi tên trong app Mạng Xã Hội → Hồ sơ. Tên nhập vào được escape, không chèn được HTML.
+
+2. App "Mạng Xã Hội" (Điện thoại → Internet)
+   - Bảng tin: 3–6 bài NPC mỗi ngày, sinh theo seed ngày nên mở lại không đổi.
+   - Người chơi đăng tối đa 2 bài/ngày. Mỗi bài tung 1 lần 3% lan truyền (+2..5 danh tiếng),
+     kết quả lưu ngay. Xoá bài không hoàn lượt. Lịch sử có giới hạn độ dài.
+   - Tin chuyên án công khai cũng lên bảng tin.
+
+3. Chuyên án sát nhân hàng loạt
+   - Từ ngày 7, mỗi ngày 5% (kiểm tra 1 lần/ngày, lưu kết quả). Tối đa 1 chuyên án, hồi 30 ngày.
+     Tự khép sau ~21 ngày nếu không ai phá.
+   - 6 nghi phạm, hung thủ cố định từ lúc tạo. Dữ kiện được kiểm tra tự động là giải được
+     (3000 seed, 0 lỗi).
+   - Cảnh sát: hồ sơ vụ án với 4 minigame thật (hiện trường, dòng thời gian, đối chiếu, thẩm vấn).
+     Chi phí hiện trước, tiến độ được lưu. Bảng suy luận: kết luận cần chứng cứ và lập luận.
+     Sai thì phải chờ, thiếu chứng cứ thì chỉ tốn thời gian. Đúng thì minigame bắt giữ,
+     thưởng trả đúng 1 lần.
+   - Dân thường: tin tức, popup xếp hàng (không đè lên minigame). Có tỉ lệ bị sát nhân
+     nhắm đến: đấu trí (câu đố từ dữ kiện vụ án), né, hoặc truy đuổi. Thắng thì bắt được
+     hắn và nhận thưởng; thua thì xuống địa ngục.
+   - Công cụ debug chỉ bật khi localStorage "sd-debug" = "1". Không có nút xem hung thủ
+     trong giao diện thường.
+
+4. Hyper car mới: Lerrari Fa Lerra ($18.000.000, 381 km/h), ảnh theo xe gửi kèm.
+
+5. F1: mỗi đội 2 xe (10 đội, 20 xe)
+   - Có tay đua thứ 2 cho mỗi đội. Có bảng xếp hạng tay đua và bảng đội. Lưới xuất phát
+     và kết quả 20 xe. Save F1 cũ được chuyển đổi tự động.
+   - Online, sự nghiệp trong thế giới chủ phòng: khách nhận lời mời đội như offline
+     (cùng đội chủ phòng hoặc đội khác). Tay đua khách được giữ trong save chủ phòng kể cả
+     khi thoát. Phân hạng và đua theo đúng ngày trên lịch. Khách vắng mặt thì AI lái thay,
+     lương giữ lại và trả khi khách vào lại.
+   - Đua giao hữu (Gara → Chạy xe → Giao hữu): mỗi người chọn đội, tối đa 2 người/đội.
+
+6. Poker online: người chơi ngồi vào thay một người máy ở bàn casino của chủ phòng.
+   Chủ phòng giữ luật chơi. Rời bàn hoặc mất kết nối thì chip được giữ lại, người máy
+   ngồi lại chỗ đó.
+
+7. Sở hữu online
+   - Khi ghé thăm, khách mua lô kinh doanh (mở 1 trong 6 loại cửa hàng) hoặc lô Khu cao cấp
+     bằng ví của mình. Quyền sở hữu lưu trong save chủ phòng (W.gprop).
+   - Chủ phòng không mua được lô đó. Bản đồ hiện "Tên quán · Tên chủ 👥".
+   - Lãi theo ngày: khách đang online thì trả thẳng vào ví khách. Khách vắng mặt thì AI quản lý
+     (trích 30%), lãi giữ lại và trả khi khách vào lại phòng.
+   - Từ ngày 10 AI quản lý, mỗi ngày 20% cơ hội đưa quán lên sàn chứng khoán của thế giới
+     chủ phòng: có mã riêng, bán 40% cổ phần, tiền thu về cho chủ quán. Mã cổ phiếu còn
+     nguyên sau khi tải lại save.
+   - Bán lại lô được 60% giá mua (nếu quán chưa lên sàn).
+
+8. Khác
+   - Nút "Chơi cùng bạn bè" trên thanh tiêu đề. HUD đua hiện tên tay đua.
+   - Đã sửa lỗi: khách không nhận được thế giới của chủ phòng (mất bước khởi tạo mạng
+     sau lần viết lại F1).
+   - sw.js: cache "song-dem-v1.9.23-full", có thêm net.js, coop.js, peerjs.min.js, carx.js.
+     Request khác origin không bị cache.
+
+B. KẾT QUẢ KIỂM TRA (Chromium + Playwright, iPhone 390×844, 2 trình duyệt kết nối
+   qua máy chủ PeerJS chạy trên máy)
+-------------------------------------------------------------------------------------
+ĐÃ KIỂM TRA, ĐẠT
+ - Tên: hỏi khi chơi mới; save cũ thành "Player"; giữ tên sau khi tải lại; tên có HTML
+   hiển thị dạng chữ.
+ - Mạng Xã Hội: bảng tin ổn định khi mở lại; lan truyền cộng danh tiếng đúng 1 lần;
+   bài thứ 3 trong ngày bị khoá; xoá bài không hoàn lượt; tải lại giữ nguyên.
+ - Chuyên án, cảnh sát: đủ 4 minigame; kết luận sai thì phải chờ; thiếu chứng cứ bị từ chối;
+   kết luận đúng → bắt giữ → thưởng $40.500 trả 1 lần; tin tức đã cập nhật.
+ - Chuyên án, dân thường: popup; tải lại không đổi vụ án; tự khép; đấu trí thắng
+   (+$20.000) và thua (xuống địa ngục).
+ - Lerrari: mua được và hiện ở showroom.
+ - F1 offline: 20 xe khi đua thật; phân hạng nhanh và đua nhanh hiện "/20"; bảng xếp hạng;
+   lịch các chặng; mô phỏng chặng bị bỏ lỡ.
+ - F1 online sự nghiệp: khách ký vào đội của chủ phòng (ghế 2); phân hạng online; sảnh đua
+   trực tiếp; khách nhận $59.000; khách vắng thì AI lái và giữ $55.000; khách vào lại
+   nhận đủ tiền.
+ - F1 giao hữu (2 người cùng đội): 20 xe, cả hai về đích, thưởng chia đúng
+   (+$24.000 / +$30.000), mùa giải không bị ảnh hưởng.
+ - Poker online: khách ngồi thay người máy; tổng chip được bảo toàn (3000); thông báo
+   đúng góc nhìn từng người; ví khách khớp; rời bàn thì người máy quay lại.
+ - Blackjack chung bàn: tiền thắng/thua khớp; tặng tiền; hoàn tiền khi chủ phòng rời
+   giữa ván.
+ - Ghé thăm thế giới: khách thấy bản đồ chủ phòng; nhãn vị trí; "Đến chỗ"; rời phòng
+   thì save khách không bị lẫn dữ liệu.
+ - Sở hữu online: khách mua lô k1 (trừ $12.000); chủ phòng bị chặn; nhãn bản đồ; khách
+   online nhận lãi hằng ngày; khách vắng 30 ngày thì AI quản lý, lên sàn (mã CPG) và giữ
+   ~$38.000; tải lại save giữ mã cổ phiếu; khách vào lại nhận đủ; mua/bán lô cao cấp
+   (hoàn 60%).
+ - Save cũ: save tạo từ bản gốc v1.9.22 mở được bằng bản mới, không lỗi JS; chạy 3 ngày
+   và vào Gara không lỗi.
+ - PWA: service worker hoạt động; tắt mạng rồi tải lại vẫn chạy (đủ SD, SDNet, PeerJS,
+   ảnh xe mới).
+
+CHƯA THỂ XÁC MINH
+ - Chưa thử trên iPhone/Safari thật: chỉ giả lập kích thước màn hình trên Chromium.
+ - Chưa thử kết nối qua máy chủ PeerJS công cộng và mạng 4G/NAT thật; kiểm thử dùng
+   máy chủ PeerJS trên cùng máy.
+ - Chưa thử phòng 3–4 người cùng lúc; đã thử với 2 người.
+ - Một số nhánh hiếm do xác suất (ví dụ lan truyền 3%, thời điểm bị sát nhân nhắm đến)
+   được kiểm tra bằng cách ép điều kiện qua công cụ debug, không chờ xảy ra tự nhiên.

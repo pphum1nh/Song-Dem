@@ -1,0 +1,90 @@
+SÒNG ĐÊM: CÀI LÊN IPHONE / IPAD (không cần App Store)
+
+iPhone không cho cài file như APK, nên game được đóng gói dạng "web app":
+đưa thư mục này lên một trang web miễn phí một lần, mở bằng Safari,
+rồi "Thêm vào Màn hình chính". Sau đó game có biểu tượng riêng, mở toàn màn hình
+và chơi được KHÔNG CẦN MẠNG.
+
+BƯỚC 1: Đưa thư mục lên mạng (làm trên máy tính, 1 lần)
+  Cách dễ nhất: Netlify Drop
+  1. Vào https://app.netlify.com/drop
+  2. Kéo cả thư mục "SongDem-iOS" (đã giải nén) thả vào trang.
+  3. Đăng ký tài khoản miễn phí khi được hỏi để giữ trang lâu dài.
+  4. Chép địa chỉ trang (dạng https://ten-gi-do.netlify.app).
+  (Cũng có thể dùng GitHub Pages, Cloudflare Pages… miễn là có https.)
+
+BƯỚC 2: Cài lên iPhone
+  1. Mở địa chỉ trên bằng SAFARI (không dùng Chrome / Zalo / Facebook).
+  2. Đợi game hiện menu (lần đầu cần mạng để tải về máy).
+  3. Bấm nút Chia sẻ (ô vuông có mũi tên lên) → "Thêm vào MH chính".
+  4. Mở game từ biểu tượng Sòng Đêm trên màn hình chính.
+  Từ giờ có thể tắt mạng vẫn chơi bình thường.
+
+LƯU Ý
+  - Tiến trình lưu ngay trên iPhone. Nếu xoá biểu tượng app, dữ liệu cũng mất,
+    nên thỉnh thoảng vào Điện thoại → Cài đặt trong game → "Sao chép mã lưu"
+    và dán vào Ghi chú để giữ lại.
+  - Không có nút Thoát trên iPhone (Apple không cho web app tự đóng).
+    Vuốt lên để thoát như mọi app khác, game đã tự lưu.
+  - Dữ liệu bản iPhone tách riêng với bản PC/Android. Muốn mang tiến trình
+    sang, dùng "Sao chép mã lưu" ở máy cũ rồi Menu → Tải game → dán mã.
+
+CHƠI CÙNG BẠN BÈ (ONLINE)
+  Một mã phòng 5 ký tự dùng cho mọi thứ. Mở bằng nút hình 2 người trên thanh
+  tiêu đề (cạnh nút điện thoại), hoặc Sòng Đêm → ô "Chơi cùng bạn bè".
+
+  1) Ghé thăm thế giới
+  - Chủ phòng bấm "Mở thế giới của tôi" → nhận mã, gửi cho bạn bè (nút "Mời").
+  - Bạn bè nhập mã → "Ghé thăm". Bản đồ thành phố của khách sẽ hiện nhà cửa,
+    cơ ngơi, giờ giấc của chủ phòng. Trên bản đồ có nhãn tên cho biết mỗi người
+    đang ở đâu; trong bảng Phòng có nút "Đến chỗ" để chạy tới chỗ bạn ấy.
+  - Mỗi người vẫn dùng ví, xe, đồ của mình; tiến trình của khách lưu vào máy khách.
+    Rời phòng là về lại thế giới của mình.
+  - Chat, tặng tiền ($50 đến $1.000), rủ nhau chơi.
+
+  2) Blackjack chung bàn: bảng Phòng → Blackjack. Cả bàn cùng thắng một ván
+     thì mỗi người được thưởng thêm 25% tiền cược.
+
+  3) Đua F1 online (mỗi đội 2 xe, 10 đội, 20 xe)
+  - Giao hữu: Gara → Chạy xe → Giao hữu. Mỗi người tự chọn đội: cùng đội hoặc
+    khác đội (tối đa 2 người/đội). Chủ phòng chọn đường đua, số vòng, bấm
+    Xuất phát. Thưởng: $2.000 × điểm của bạn + $1.000 × điểm đồng đội người
+    thật + $50.000 nếu về nhất. Không ảnh hưởng mùa giải.
+  - Sự nghiệp F1 trong thế giới chủ phòng: khách vào Gara → Chạy xe → F1 online.
+    Nhận lời mời đội như bản offline (có thể vào đội của chủ phòng hoặc đội
+    khác). Tay đua khách được lưu trong save của chủ phòng, kể cả khi khách thoát.
+    Đến đúng ngày phân hạng / ngày đua theo lịch mới chạy được. Khi chủ phòng
+    mở sảnh đua mà khách vắng mặt, AI lái thay; lương được giữ lại và trả
+    khi khách vào lại phòng.
+
+  4) Poker online: vào bàn Poker trong casino của chủ phòng, ngồi vào ghế thay
+     một người máy. Rời bàn hoặc rời phòng thì người máy ngồi lại chỗ đó.
+
+  5) Mua cửa hàng / lô đất trong thế giới chủ phòng
+  - Khi đang ghé thăm, bấm vào lô kinh doanh (Phố kinh doanh, Phố trên) hoặc lô
+    ở Khu cao cấp còn trống để mua bằng ví của bạn.
+  - Quyền sở hữu lưu trong save của chủ phòng; chủ phòng không mua được lô đó,
+    trên bản đồ có nhãn tên chủ (👥).
+  - Lãi trả thẳng vào ví khách mỗi ngày khi khách đang trong phòng. Khi khách
+    vắng mặt, AI quản lý (trích 30% phí), lãi được giữ lại và trả khi khách
+    vào lại phòng. Sau khoảng 10 ngày AI quản lý, quán có thể được AI đưa lên
+    sàn chứng khoán của thế giới chủ phòng (mã riêng, bán 40% cổ phần).
+  - Bán lại được 60% giá mua (khi quán chưa lên sàn).
+
+  Lưu ý:
+  - Cần mạng cho phần online. Các máy kết nối trực tiếp với nhau (WebRTC, qua máy chủ trung gian
+    miễn phí của PeerJS), không cần tự dựng máy chủ.
+  - Đừng chuyển app ra nền khi đang chơi: iPhone sẽ ngắt kết nối.
+  - Nếu 2 máy cùng dùng 4G mà không vào được phòng, hãy cho 1 máy dùng Wi-Fi.
+  - Sau khi cập nhật bản mới lên Netlify, mở game có mạng một lần để tải bản mới.
+
+TÍNH NĂNG MỚI v1.9.23
+  - Tên nhân vật: hỏi khi chơi mới; save cũ dùng tên "Player", đổi trong app
+    Mạng Xã Hội (Điện thoại → Internet → Mạng Xã Hội).
+  - Mạng Xã Hội: bảng tin NPC mỗi ngày, đăng tối đa 2 bài/ngày, mỗi bài có 3%
+    lan truyền (+2 đến +5 danh tiếng).
+  - Chuyên án sát nhân hàng loạt (từ ngày 7): cảnh sát điều tra bằng hồ sơ
+    vụ án (hiện trường, dòng thời gian, đối chiếu, thẩm vấn, bảng suy luận).
+    Người thường có thể bị sát nhân nhắm đến: đấu trí / né / truy đuổi,
+    thắng thì bắt được hắn, thua thì xuống địa ngục.
+  - Hyper car mới: Lerrari Fa Lerra.
