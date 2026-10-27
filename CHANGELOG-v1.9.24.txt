@@ -46,3 +46,10 @@ v1.9.29 · KỲ CHUYỂN NHƯỢNG + CHỢ BÓNG RỔ
 
 v1.9.30 · KHÁCH CHỈ CHƠI TRONG GIẢI CỦA CHỦ PHÒNG
 - Khách trong phòng online: mọi lối vào sân vận động (bản đồ, lịch, điện thoại) đều mở giải VĐQG của chủ phòng để mua/sửa đội, không còn đường mua CLB riêng 500.000 tách khỏi giải. CLB riêng cũ (nếu có) vẫn truy cập được bằng nút "CLB riêng của tôi".
+
+v1.9.31 · KHÁCH QUẢN LÝ ĐẦY ĐỦ CLB BÓNG ĐÁ
+- Nút "Sửa" thành "Quản lý": khách mở đúng giao diện CLB offline cho đội mình trong giải của chủ phòng: cầu thủ, ban huấn luyện, tuyển trạch, học viện, sân & giá vé, chiến thuật (sơ đồ, lối chơi, đội hình chính), thị trường chuyển nhượng riêng (kỳ chuyển nhượng), bảng xếp hạng, lịch sử, cơ sở vật chất, tên/logo/áo đấu.
+- Dữ liệu CLB lưu trong save của chủ phòng (tự đồng bộ vài giây một lần khi có thay đổi). Máy khách giữ bản làm việc để dùng khi vào lại.
+- Sức mạnh đội trong giải tính từ đội hình chính, sơ đồ và HLV thật của khách. Tên, viết tắt, màu áo đổi theo CLB (tên trùng đội khác thì giữ tên cũ).
+- Như offline: khách trả lương cầu thủ/HLV/tuyển trạch mỗi ngày, nhận tiền vé trận sân nhà, danh tiếng và phong độ theo kết quả; cầu thủ thêm tuổi khi giải của chủ phòng sang mùa. Đội có CLB đầy đủ không nhận khoản thưởng cố định mỗi trận như trước.
+- CLB riêng cũ của khách (nếu có) không bị ảnh hưởng, vẫn mở được bằng "CLB riêng của tôi".
