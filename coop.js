@@ -125,6 +125,9 @@ ov.innerHTML=`<div class="cp-wrap">
       <div class="cp-or">hoặc ghé thăm bạn bè</div>
       <label><span class="cp-lbl">Mã phòng</span>
         <div class="cp-row"><input class="cp-in code" id="cpCode" maxlength="5" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="•••••"><button class="btn" id="cpJoin" style="min-height:48px; padding:0 16px">Ghé thăm</button></div></label>
+      <details class="cp-adv"><summary>Kết nối khó? (TURN riêng)</summary>
+        <p class="cp-hint">Game tự thử kết nối trực tiếp rồi chuyển sang máy chủ chuyển tiếp công cộng. Nếu vẫn không vào được, nhập máy chủ TURN của bạn, dạng <b>turn:host:3478|tên|mật khẩu</b> (nhiều máy chủ cách nhau bằng dấu ;). Cả hai máy nên nhập giống nhau.</p>
+        <input class="cp-in" id="cpTurn" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="turn:host:3478|tên|mật khẩu"></details>
       <p class="cp-status" id="cpStatus" aria-live="polite"></p>
     </div>
   </div>
@@ -206,7 +209,7 @@ function showView(){
 function open(opts){
   opts=opts||{};
   if(SD.hell()){ SD.toast('Dưới âm phủ không bắt được sóng. Sống lại rồi chơi online.'); return; }
-  $('cpName').value=N.name();
+  $('cpName').value=N.name(); $('cpTurn').value=N.turn();
   if(opts.code) $('cpCode').value=N.normCode(opts.code);
   if(opts.tab) tab=opts.tab;
   if(!N.inRoom()) setStatus(opts.code?'Nhập tên rồi bấm Ghé thăm.':'');
@@ -218,6 +221,7 @@ async function doCreate(){ const name=myName(); busy(true); setStatus('Đang m�
   try{ await N.create(name); tab='room'; showView(); }catch(e){ setStatus(e.message,true); busy(false); } }
 async function doJoin(){ const name=myName(), c=$('cpCode').value; busy(true); setStatus('Đang tìm phòng '+N.normCode(c)+'…');
   try{ await N.join(c,name); tab='room'; showView(); }catch(e){ setStatus(e.message,true); busy(false); } }
+$('cpTurn').addEventListener('change',()=>N.setTurn($('cpTurn').value));
 function myName(){ const n=($('cpName').value||'').trim().slice(0,16)||N.name()||'Khách'; N.setName(n); return n; }
 window.SDCoop={open, close, state:()=>S, id:()=>N.me(), tab:t=>{ tab=t; showView(); }};
 

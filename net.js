@@ -7,11 +7,16 @@
 (function(){
 'use strict';
 const VER=2, PREFIX='songdem-room-v2-', CODE_CH='ABCDEFGHJKMNPQRSTUVWXYZ23456789', CODE_LEN=5, MAX=4;
-const ICE=[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'},{urls:'stun:stun.cloudflare.com:3478'}];
+const ICE=[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'},{urls:'stun:stun.cloudflare.com:3478'},
+  /* TURN chuyển tiếp công cộng (Open Relay của Metered), dùng khi hai máy không nối trực tiếp được. Cổng 80/443 để qua được Wi-Fi hạn chế. */
+  {urls:['turn:openrelay.metered.ca:80','turn:openrelay.metered.ca:443','turn:openrelay.metered.ca:443?transport=tcp','turns:openrelay.metered.ca:443?transport=tcp'], username:'openrelayproject', credential:'openrelayproject'}];
 const ls={ get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }, set(k,v){ try{ localStorage.setItem(k,v); }catch(e){} } };
 
-function peerOpts(){
-  const o={debug:0, config:{iceServers:(window.SD_ICE||ICE)}};
+/* TURN riêng của người chơi: "turn:host:port|user|pass" (nhiều máy chủ cách nhau bằng ;) lưu ở sd-coop-turn */
+function userTurn(){ const raw=ls.get('sd-coop-turn')||''; const out=[];
+  raw.split(';').forEach(x=>{ const [u,user,cred]=x.split('|').map(t=>(t||'').trim()); if(/^turns?:/i.test(u)) out.push(user?{urls:u,username:user,credential:cred||''}:{urls:u}); }); return out; }
+function peerOpts(relay){
+  const o={debug:0, config:{iceServers:userTurn().concat(window.SD_ICE||ICE)}}; if(relay) o.config.iceTransportPolicy='relay';
   let q=null; try{ q=new URLSearchParams(location.search).get('peer'); }catch(e){}
   q=q||ls.get('sd-coop-peer');
   if(q){ const [h,p,path]=q.split(':'); o.host=h; o.port=+p||443; o.secure=o.port===443; o.path=path||'/'; }
@@ -46,6 +51,7 @@ const N={
   pid:()=>myPid(), oid:()=>toOid(myPid()),
   /* chủ phòng: oid của một thành viên theo peer id (rỗng nếu không rõ) */
   oidOf:id=>{ const m=members.find(x=>x.id===id); if(m&&m.host) return toOid(myPid()); return toOid(pids[id]||''); },
+  turn:()=>ls.get('sd-coop-turn')||'', setTurn:v=>ls.set('sd-coop-turn',clip(v,300).trim()),
   name:()=>ls.get('sd-coop-name')||'', setName:n=>ls.set('sd-coop-name',clip(n,16)),
   unread:()=>unread, setOpen:o=>{ open=!!o; if(open){ unread=0; emit('chat'); } },
   on(ch,fn){ (handlers[ch]=handlers[ch]||[]).push(fn); },
@@ -126,14 +132,19 @@ function create(name,tries){
     p.on('disconnected',()=>{ if(p===peer&&!p.destroyed) try{ p.reconnect(); }catch(e){} });
   });
 }
-function join(raw,name){
+function join(raw,name,relay){
   return new Promise((res,rej)=>{
     if(typeof window.Peer!=='function') return rej(new Error('Thiếu thư viện kết nối. Mở lại game khi có mạng.'));
     const c0=normCode(raw); if(c0.length!==CODE_LEN) return rej(new Error('Mã phòng gồm 5 ký tự.'));
     leave(true); code=c0; N.setName(name); let done=false;
     const fail=m=>{ if(done) return; done=true; clearTimeout(tm); leave(true); rej(new Error(m)); };
-    const tm=setTimeout(()=>fail(`Không kết nối được tới phòng ${c0}. Kiểm tra mã, hoặc thử cho một máy dùng Wi-Fi.`),15000);
-    const p=peer=new window.Peer(undefined, peerOpts());
+    let ice='';
+    /* hết giờ: lần đầu thử nối trực tiếp, lần hai ép đi qua máy chủ chuyển tiếp TURN */
+    const tm=setTimeout(()=>{ if(done) return; try{ ice=hostConn&&hostConn.peerConnection?hostConn.peerConnection.iceConnectionState:''; }catch(e){}
+      const sig=me?'đã nối máy chủ trung gian':'chưa nối được máy chủ trung gian';
+      if(!relay&&me){ done=true; leave(true); join(raw,name,true).then(res,rej); return; }
+      fail(`Không kết nối được tới phòng ${c0} (${sig}${ice?', ICE '+ice:''}${relay?', đã thử cả máy chủ chuyển tiếp':''}). Kiểm tra mã phòng, chủ phòng còn mở phòng, hoặc nhập TURN riêng trong khung "Kết nối khó".`); },relay?18000:10000);
+    const p=peer=new window.Peer(undefined, peerOpts(relay));
     p.on('open',id=>{ if(p!==peer) return; me=id; host=false;
       const c=hostConn=p.connect(PREFIX+c0,{reliable:true, metadata:{v:VER}});
       c.on('open',()=>{ seen.host=Date.now(); rawSend(c,{ch:'room',t:'hello',name:clip(name||'Khách',16),pid:myPid(),v:VER}); });

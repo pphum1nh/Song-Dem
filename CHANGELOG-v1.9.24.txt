@@ -25,3 +25,9 @@ v1.9.25 · THỜI GIAN ONLINE
 
 v1.9.26 · SỬA LỖI BÁN DOANH NGHIỆP
 - Bán doanh nghiệp giờ hoàn 80% vốn đã bỏ (đất + phí mở cửa hàng + tiền nâng cấp + quỹ), không còn tính theo lãi và uy tín. Ví dụ: cửa hàng ở Phố trên mở 2.000 (đất 1.000), nâng cấp thêm 800 thì bán nhận 80% của 3.800.
+
+v1.9.27 · KẾT NỐI ONLINE
+- Thêm máy chủ TURN chuyển tiếp công cộng (Open Relay, cổng 80/443, có TCP/TLS) vào danh sách ICE.
+- Khách vào phòng: thử nối trực tiếp 10 giây, không được thì tự thử lại ép đi qua TURN (tối đa 18 giây).
+- Thông báo lỗi cho biết đã nối được máy chủ trung gian PeerJS hay chưa và trạng thái ICE.
+- Khung "Kết nối khó? (TURN riêng)" trong màn hình chơi cùng: nhập turn:host:port|tên|mật khẩu.
