@@ -38,3 +38,8 @@ v1.9.28 · THỊ TRƯỜNG CHUYỂN NHƯỢNG CHUNG (bóng đá online)
 - Đội bóng khách mua giờ có đội hình thật (16 cầu thủ); sức mạnh đội tính theo 11 cầu thủ mạnh nhất, cầu thủ lên/xuống theo mùa.
 - Chủ phòng quyết định mọi giao dịch: kiểm tra giá, ví, số cầu thủ (tối đa 26, tối thiểu 14/15), mỗi người đăng tối đa 6. Khách trả tiền lỗi thì được hoàn; tiền bán về ví người bán (khách nhận qua sổ chờ chi trả).
 - Bán lại đội thì cầu thủ đang đăng bán của đội đó bị gỡ.
+
+v1.9.29 · KỲ CHUYỂN NHƯỢNG + CHỢ BÓNG RỔ
+- Chợ chuyển nhượng chỉ mở trong kỳ chuyển nhượng (ngày 7-13 và 30-36 mỗi năm, giống lịch trong game). Ngoài kỳ, mua và đăng bán bị khoá, chợ báo ngày mở lại; vẫn rút cầu thủ đang đăng về đội được.
+- Chợ tự do chỉ bơm cầu thủ mới khi kỳ chuyển nhượng mở.
+- Thêm chợ bóng rổ: tab Bóng rổ trong chợ, nút trong màn bóng rổ của khách. Chủ phòng và khách có đội bóng rổ mua bán cầu thủ; tối đa 3 ngoại binh, đội 10-15 người (khách 8-15).

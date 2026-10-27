@@ -19733,7 +19733,7 @@ function gpHostRecv(d,from){
   gpClaim(oid,name);
   if(d.t==='ack'){ ldAck(oid,String(d.id||'')); return; }
   if(d.t==='hi'){ ldLegacy(oid,name); Object.values(G).forEach(P=>{ if(P.oid===oid&&P.owed>0){ ldAdd(oid,P.owed,`Lãi cửa hàng của bạn trong thế giới của ${pName()} (gồm thời gian AI quản lý)`); P.owed=0; } }); save(); ldSend(oid); return; }
-  if(d.t==='mkopen'){ if(!W.fc) return; gmkEns(); save(); sdvSendAll(from); return; }
+  if(d.t==='mkopen'){ if(!W.fc&&!W.bb) return; gmkEns(); save(); sdvSendAll(from); return; }
   if(!d.tx) return;
   const X=(W.gtx&&typeof W.gtx==='object')?W.gtx:(W.gtx={}), xk=oid+':'+String(d.tx).slice(0,24);
   if(X[xk]){ N.to(from,'prop',{t:X[xk].ok?'ok':'deny', tx:d.tx, txt:X[xk].txt}); return; }
@@ -19813,7 +19813,7 @@ function gpGuestStadium(orig){
 function gpBbHTML(){
   const me=gpN().oid(), rows=sdvWith(()=>{ const B=W.bb; if(!B) return null; return bbTable().map((t,pos)=>{ const tm=bbTeam(t.i), a=t.i>0?B.ai[t.i-1]:null; return {pos:pos+1,n:tm.n,w:t.w,l:t.l,owner:a&&a.owner||null}; }); });
   if(!rows) return '<p class="mnote">Chủ phòng chưa có giải VĐQG bóng rổ.</p>';
-  return `<div class="gplg">${rows.map(r=>`<div class="gprow"><b>${r.pos}</b><span class="gpn">${sdEsc(r.n)}${r.owner?` <small>${r.owner.oid===me?'của bạn':sdEsc(r.owner.name)} 👥</small>`:''}</span><i>${r.w}T ${r.l}B</i></div>`).join('')}</div>`;
+  return `<div class="gplg">${rows.map(r=>`<div class="gprow"><b>${r.pos}</b><span class="gpn">${sdEsc(r.n)}${r.owner?` <small>${r.owner.oid===me?'của bạn':sdEsc(r.owner.name)} 👥</small>`:''}</span><i>${r.w}T ${r.l}B</i></div>`).join('')}</div><button class="btn" data-gmkopen="bb" style="width:100%;margin-top:8px">Chợ chuyển nhượng cầu thủ</button>`;
 }
 /* biểu mẫu tên đội + màu áo */
 let GPF=null;
@@ -19916,69 +19916,85 @@ function slpInit(){ const N=slpN(); if(!N||N._slp) return; N._slp=true;
 window.addEventListener('load',slpInit);
 
 /* =========================================================
-   v1.9.28 · THỊ TRƯỜNG CHUYỂN NHƯỢNG CHUNG (bóng đá online)
-   Chủ phòng giữ sổ chợ W.gmk. Mọi người trong phòng có đội (chủ phòng với CLB của mình,
-   khách với đội mua ở sân vận động) đều đăng bán / mua cầu thủ. Chợ tự do bơm thêm cầu thủ
-   (giá cao hơn giá trị 15%). Tiền bán đi tới người bán qua sổ chờ chi trả.
+   v1.9.28 · THỊ TRƯỜNG CHUYỂN NHƯỢNG CHUNG (bóng đá + bóng rổ online)
+   Chủ phòng giữ sổ chợ W.gmk. Chợ chỉ mở trong kỳ chuyển nhượng (twOpen: ngày 7-13 và 30-36 mỗi năm).
+   Người có đội (chủ phòng với CLB của mình, khách với đội mua ở sân vận động) đăng bán / mua cầu thủ.
+   Chợ tự do bơm thêm cầu thủ (giá cao hơn giá trị 15%). Tiền bán tới người bán qua sổ chờ chi trả.
    ========================================================= */
-const GMK={tab:'mk', seq:0};
-const GMK_SQUAD=[ 'GK','GK','DF','DF','DF','DF','DF','DF','MF','MF','MF','MF','MF','FW','FW','FW' ], GMK_MAX=26, GMK_MIN_G=14, GMK_MIN_H=15;
+const GMK={tab:'mk', sp:'fc'};
+const GMK_SQUAD=[ 'GK','GK','DF','DF','DF','DF','DF','DF','MF','MF','MF','MF','MF','FW','FW','FW' ];
+const GMK_LIM={fc:{max:26,minG:14,minH:15}, bb:{max:15,minG:8,minH:10}};
+const GMK_SP=[['fc','Bóng đá'],['bb','Bóng rổ']];
 function gmkMkSquad(a){ const s=a.str||44, L=GMK_SQUAD.map(pos=>mkPlayer(pos,Math.max(20,s-10),s+6)); L.forEach((p,i)=>p.num=i+1); return L; }
 function gmkStr(a){ if(!a.squad||!a.squad.length) return; const top=a.squad.slice().sort((x,y)=>y.ca-x.ca).slice(0,11); const avg=top.reduce((t,p)=>t+p.ca,0)/top.length; a.str=Math.max(25,Math.min(88,Math.round(avg+2))); }
-function gmkEns(){ const d=dayOf(W.clock); const M=(W.gmk&&typeof W.gmk==='object')?W.gmk:(W.gmk={list:[],day:0,seq:0}); if(!Array.isArray(M.list)) M.list=[];
+const gmkVal=(sp,p)=>sp==='bb'?Math.max(3000,Math.round(Math.pow(bbOvr(p)/10,3)*900*(p.age<=24?1.25:p.age>=31?.7:1)/1000)*1000):(p.val||fcVal(p));
+function gmkBbFull(e){ if(e.age==null) e.age=21+Math.floor(Math.random()*9); if(e.pot==null) e.pot=Math.min(99,bbOvr(e)+3); if(e.hgt==null) e.hgt=190; if(e.wage==null) e.wage=100; if(!e.st) e.st={gp:0,pts:0,reb:0,ast:0}; if(e.form==null) e.form=6; if(e.fat==null) e.fat=0; if(e.inj==null) e.inj=0; if(!e.ctry) e.ctry='Việt Nam'; return e; }
+function gmkEns(){ const d=dayOf(W.clock), open=twOpen(d); const M=(W.gmk&&typeof W.gmk==='object')?W.gmk:(W.gmk={list:[],day:0,seq:0}); if(!Array.isArray(M.list)) M.list=[];
   M.list=M.list.filter(l=>l.by!=='sys'||d-l.day<6);
-  if(d-(M.day||0)>=3||!M.list.some(l=>l.by==='sys')){ M.day=d; const pos=['GK','DF','DF','MF','MF','FW','FW','FW'];
-    for(let i=0;i<8;i++){ const p=mkPlayer(pos[i%pos.length],32,66); M.list.push({id:'m'+d+'_'+(++M.seq)+'_'+i, p, price:Math.max(5000,Math.round(p.val*1.15/1000)*1000), by:'sys', byName:'Chợ tự do', day:d}); } }
+  if(open&&(d-(M.day||0)>=3||!M.list.some(l=>l.by==='sys'))){ M.day=d; M.seq=M.seq||0;
+    if(W.fc){ const pos=['GK','DF','DF','MF','MF','FW','FW','FW']; for(let i=0;i<8;i++){ const p=mkPlayer(pos[i],32,66); M.list.push({id:'m'+d+'_'+(++M.seq)+'_'+i, sp:'fc', p, price:Math.max(5000,Math.round(p.val*1.15/1000)*1000), by:'sys', byName:'Chợ tự do', day:d}); } }
+    if(W.bb){ const pos=['PG','SG','SF','PF','C','SF']; for(let i=0;i<6;i++){ const p=bbMk(pos[i],36,62,i<2?'F':undefined); M.list.push({id:'b'+d+'_'+(++M.seq)+'_'+i, sp:'bb', p, price:Math.max(5000,Math.round(gmkVal('bb',p)*1.15/1000)*1000), by:'sys', byName:'Chợ tự do', day:d}); } } }
+  if(W.bb&&W.bb.ai) W.bb.ai.forEach(a=>{ if(a.owner){ bbAiRoster(a).forEach(gmkBbFull); } });
   return M; }
 function gmkNum(arr){ for(let n=1;n<100;n++) if(!arr.some(p=>p.num===n)) return n; return 0; }
-/* đội của một người: chủ phòng = CLB của mình, khách = đội bóng họ sở hữu */
-function gmkTeam(actor){ const F=W.fc; if(!F) return null;
-  if(actor.kind==='host') return {players:F.players, min:GMK_MIN_H, after:()=>{ try{ fcAutoXI(); }catch(e){} }};
-  const k=gpFcOwned(F,actor.key); if(k<0) return null; const a=F.ai[k]; if(!a.squad) { a.squad=gmkMkSquad(a); gmkStr(a); } return {players:a.squad, min:GMK_MIN_G, after:()=>gmkStr(a)}; }
+/* đội của một người theo môn */
+function gmkTeam(actor,sp){ const L=GMK_LIM[sp], host=actor.kind==='host';
+  if(sp==='bb'){ const B=W.bb; if(!B) return null;
+    if(host) return {sp, players:B.players, min:L.minH, max:L.max, after:()=>{ try{ bbAutoLine(); }catch(e){} }};
+    const k=gpBbOwned(B,actor.key); if(k<0) return null; const a=B.ai[k]; return {sp, players:bbAiRoster(a), min:L.minG, max:L.max, after:()=>{}}; }
+  const F=W.fc; if(!F) return null;
+  if(host) return {sp, players:F.players, min:L.minH, max:L.max, after:()=>{ try{ fcAutoXI(); }catch(e){} }};
+  const k=gpFcOwned(F,actor.key); if(k<0) return null; const a=F.ai[k]; if(!a.squad){ a.squad=gmkMkSquad(a); gmkStr(a); } return {sp, players:a.squad, min:L.minG, max:L.max, after:()=>gmkStr(a)}; }
 function gmkAct(actor,d){
-  const F=W.fc; if(!F) return [false,'Chủ phòng chưa có CLB bóng đá.']; const M=gmkEns(), T=gmkTeam(actor);
-  if(!T) return [false,'Bạn chưa có đội bóng. Hãy mua một đội ở sân vận động trước.'];
-  if(d.t==='mkbuy'){ const L=M.list.find(x=>x.id===d.id); if(!L) return [false,'Cầu thủ đã được bán hoặc rút khỏi chợ.'];
-    if(L.price!==Math.floor(+d.price)) return [false,'Giá đã thay đổi, hãy thử lại.']; if(L.by===actor.key) return [false,'Đây là cầu thủ của bạn.']; if(T.players.length>=GMK_MAX) return [false,`Đội đã đủ ${GMK_MAX} cầu thủ.`];
+  const sp=d.sp==='bb'?'bb':'fc'; if(!(sp==='bb'?W.bb:W.fc)) return [false,sp==='bb'?'Chủ phòng chưa có CLB bóng rổ.':'Chủ phòng chưa có CLB bóng đá.']; const M=gmkEns(), T=gmkTeam(actor,sp), day=dayOf(W.clock);
+  if(!T) return [false,'Bạn chưa có đội ở môn này. Hãy mua hoặc lập đội ở sân trước.'];
+  if(d.t!=='mkunlist'&&!twOpen(day)) return [false,`Thị trường chuyển nhượng đang đóng cửa, mở lại ngày ${twNext(day)}.`];
+  const isF=p=>sp==='bb'&&p.nat==='F', forN=()=>T.players.filter(isF).length, fix=p=>{ if(sp==='bb') gmkBbFull(p); return p; };
+  if(d.t==='mkbuy'){ const L=M.list.find(x=>x.id===d.id&&(x.sp||'fc')===sp); if(!L) return [false,'Cầu thủ đã được bán hoặc rút khỏi chợ.'];
+    if(L.price!==Math.floor(+d.price)) return [false,'Giá đã thay đổi, hãy thử lại.']; if(L.by===actor.key) return [false,'Đây là cầu thủ của bạn.']; if(T.players.length>=T.max) return [false,`Đội đã đủ ${T.max} cầu thủ.`];
+    if(isF(L.p)&&forN()>=BB_FOREIGN) return [false,`Đội đã đủ ${BB_FOREIGN} ngoại binh.`];
     if(actor.kind==='host'){ if(W.bank<L.price) return [false,`Cần ${fmt(L.price)}.`]; addBank(-L.price); }
-    M.list=M.list.filter(x=>x!==L); const p=L.p; p.form=6; p.num=gmkNum(T.players); T.players.push(p); T.after();
+    M.list=M.list.filter(x=>x!==L); const p=fix(L.p); p.form=6; p.num=gmkNum(T.players); T.players.push(p); T.after();
     if(L.by==='host'){ addBank(L.price); toast(`${actor.name} mua ${p.n} của bạn: +${fmt(L.price)}.`); }
     else if(L.by!=='sys'){ ldAdd(L.by,L.price,`Bán ${p.n} ở chợ chuyển nhượng cho ${actor.name}`); ldSend(L.by); }
     return [true,`Đã mua ${p.n} với ${fmt(L.price)}.`]; }
   if(d.t==='mklist'){ const p=T.players.find(x=>x.id===d.pid); if(!p) return [false,'Không tìm thấy cầu thủ.']; if(T.players.length<=T.min) return [false,`Đội cần giữ tối thiểu ${T.min} cầu thủ.`];
-    const val=p.val||fcVal(p), price=Math.round(Math.max(val*.5,Math.min(val*3,+d.price||val))/1000)*1000||Math.round(val);
+    const val=gmkVal(sp,fix(p)), price=Math.round(Math.max(val*.5,Math.min(val*3,+d.price||val))/1000)*1000||Math.round(val);
     if(M.list.filter(l=>l.by===actor.key).length>=6) return [false,'Mỗi người chỉ đăng tối đa 6 cầu thủ.'];
-    T.players.splice(T.players.indexOf(p),1); M.list.push({id:'m'+dayOf(W.clock)+'_'+(++M.seq)+'_'+Math.random().toString(36).slice(2,5), p, price, by:actor.key, byName:actor.name, day:dayOf(W.clock)}); T.after();
+    T.players.splice(T.players.indexOf(p),1); M.list.push({id:'m'+day+'_'+(++M.seq)+'_'+Math.random().toString(36).slice(2,5), sp, p, price, by:actor.key, byName:actor.name, day}); T.after();
     return [true,`Đã đăng bán ${p.n} giá ${fmt(price)}.`]; }
-  if(d.t==='mkunlist'){ const L=M.list.find(x=>x.id===d.id&&x.by===actor.key); if(!L) return [false,'Không tìm thấy cầu thủ đang đăng.']; if(T.players.length>=GMK_MAX) return [false,`Đội đã đủ ${GMK_MAX} cầu thủ.`];
-    M.list=M.list.filter(x=>x!==L); L.p.num=gmkNum(T.players); T.players.push(L.p); T.after(); return [true,`Đã rút ${L.p.n} về đội.`]; }
+  if(d.t==='mkunlist'){ const L=M.list.find(x=>x.id===d.id&&x.by===actor.key&&(x.sp||'fc')===sp); if(!L) return [false,'Không tìm thấy cầu thủ đang đăng.']; if(T.players.length>=T.max) return [false,`Đội đã đủ ${T.max} cầu thủ.`];
+    M.list=M.list.filter(x=>x!==L); L.p.num=gmkNum(T.players); T.players.push(fix(L.p)); T.after(); return [true,`Đã rút ${L.p.n} về đội.`]; }
   return [false,'Yêu cầu không hợp lệ.'];
 }
 /* ---------- giao diện (dùng chung cho chủ phòng và khách) ---------- */
 function gmkOpen(){
   const N=window.SDNet; if(!N||!N.inRoom()){ toast('Vào phòng online để dùng chợ chuyển nhượng.'); return; } if(modalOpen()) return;
-  if(N.isHost()){ if(!W.fc){ modal({kick:'Chợ chuyển nhượng', title:'Bạn chưa có CLB bóng đá', body:'Lập câu lạc bộ bóng đá trước thì giải và chợ chuyển nhượng mới mở cho cả phòng.', yes:'OK'}); return; } gmkEns(); save(); sdvSendAll(); }
-  else { if(!SDV.w||!SDV.w.fc){ modal({kick:'Chợ chuyển nhượng', title:'Chủ phòng chưa có giải bóng đá', body:'Chủ phòng cần lập câu lạc bộ bóng đá thì chợ chuyển nhượng mới mở.', yes:'OK'}); return; } N.send('prop',{t:'mkopen'}); }
+  if(N.isHost()){ if(!W.fc&&!W.bb){ modal({kick:'Chợ chuyển nhượng', title:'Bạn chưa có CLB nào', body:'Lập câu lạc bộ bóng đá hoặc bóng rổ trước thì chợ chuyển nhượng mới mở cho cả phòng.', yes:'OK'}); return; } if(!W[GMK.sp]&&W.fc) GMK.sp='fc'; if(GMK.sp==='fc'&&!W.fc) GMK.sp='bb'; gmkEns(); save(); sdvSendAll(); }
+  else { if(!SDV.w||(!SDV.w.fc&&!SDV.w.bb)){ modal({kick:'Chợ chuyển nhượng', title:'Chủ phòng chưa có giải đấu', body:'Chủ phòng cần lập câu lạc bộ bóng đá hoặc bóng rổ thì chợ chuyển nhượng mới mở.', yes:'OK'}); return; } N.send('prop',{t:'mkopen'}); }
   gmkRender(); }
 const gmkShown=()=>!$('modal').hidden&&/chuyển nhượng chung/i.test($('mKick').textContent);
 function gmkRender(tab){
-  const N=window.SDNet; if(!N||!N.inRoom()) return; if(tab) GMK.tab=tab; const host=N.isHost(), R=host?W:SDV.w; if(!R||!R.fc) return;
-  const F=R.fc, M=R.gmk||{list:[]}, me=host?'host':N.oid();
-  let mine=null; if(host) mine={name:F.name, players:F.players}; else { const a=(F.ai||[]).find(x=>x.owner&&x.owner.oid===me); if(a) mine={name:a.n, players:a.squad||[]}; }
-  const pr=p=>`<span class="gpn">${sdEsc(p.n)} <small>${p.pos} · ${p.age}t · CA ${Math.round(p.ca)}/PA ${p.pa}</small></span>`;
-  let body=`<div class="gpmktabs"><button class="btn" data-gmk="tab:mk" aria-pressed="${GMK.tab==='mk'}">Chợ (${M.list.length})</button><button class="btn" data-gmk="tab:sq" aria-pressed="${GMK.tab==='sq'}">Đội của tôi${mine?` (${mine.players.length})`:''}</button></div><p class="mnote">Ví ${fmt(W.bank)}${mine?` · đội ${sdEsc(mine.name)}`:' · bạn chưa có đội'}</p>`;
+  const N=window.SDNet; if(!N||!N.inRoom()) return; if(tab) GMK.tab=tab; const host=N.isHost(), R=host?W:SDV.w; if(!R) return; const sp=GMK.sp, M=R.gmk||{list:[]}, me=host?'host':N.oid();
+  const day=dayOf(R.clock||W.clock), open=twOpen(day);
+  let mine=null; if(sp==='bb'){ const B=R.bb; if(B){ if(host) mine={name:B.name, players:B.players}; else { const a=(B.ai||[]).find(x=>x.owner&&x.owner.oid===me); if(a) mine={name:a.n, players:a.roster||[]}; } } }
+  else { const F=R.fc; if(F){ if(host) mine={name:F.name, players:F.players}; else { const a=(F.ai||[]).find(x=>x.owner&&x.owner.oid===me); if(a) mine={name:a.n, players:a.squad||[]}; } } }
+  const L0=M.list.filter(l=>(l.sp||'fc')===sp), L=L0.slice().sort((a,b)=>sp==='bb'?bbOvr(b.p)-bbOvr(a.p):b.p.ca-a.p.ca);
+  const pr=p=>sp==='bb'?`<span class="gpn">${sdEsc(p.n)} <small>${p.pos} · ${p.age||'?'}t · OVR ${bbOvr(p)}${p.nat==='F'?' · ngoại binh':''}</small></span>`:`<span class="gpn">${sdEsc(p.n)} <small>${p.pos} · ${p.age}t · CA ${Math.round(p.ca)}/PA ${p.pa}</small></span>`;
+  const lim=GMK_LIM[sp];
+  let body=`<div class="gpmktabs">${GMK_SP.map(([k,n])=>`<button class="btn" data-gmk="sp:${k}" aria-pressed="${sp===k}">${n}</button>`).join('')}</div><div class="gpmktabs"><button class="btn" data-gmk="tab:mk" aria-pressed="${GMK.tab==='mk'}">Chợ (${L0.length})</button><button class="btn" data-gmk="tab:sq" aria-pressed="${GMK.tab==='sq'}">Đội của tôi${mine?` (${mine.players.length})`:''}</button></div>
+  <p class="mnote">${open?'Kỳ chuyển nhượng đang mở.':`Thị trường đóng cửa, mở lại ngày ${twNext(day)}. Hôm nay là ngày ${day}.`} Ví ${fmt(W.bank)}${mine?` · đội ${sdEsc(mine.name)}`:' · bạn chưa có đội ở môn này'}</p>`;
   if(GMK.tab==='mk'){
-    const L=M.list.slice().sort((a,b)=>b.p.ca-a.p.ca);
-    body+=L.length?`<div class="gplg">${L.map(l=>`<div class="gprow">${pr(l.p)}<small>${sdEsc(l.byName||'')}</small>${l.by===me?`<button class="btn" data-gmk="unlist:${l.id}">Rút</button>`:`<button class="btn primary" data-gmk="buy:${l.id}:${l.price}" ${(!mine||W.bank<l.price)?'disabled':''}>${fmt(l.price)}</button>`}</div>`).join('')}</div>`:'<p class="mnote">Chợ đang trống, thử lại sau.</p>';
-    if(!mine) body+='<p class="mnote">Mua một đội ở sân vận động để mua cầu thủ.</p>'; }
-  else { body+=mine?`<div class="gplg">${mine.players.slice().sort((a,b)=>b.ca-a.ca).map(p=>{ const v=Math.round((p.val||fcVal(p))/1000)*1000||p.val; return `<div class="gprow">${pr(p)}<button class="btn" data-gmk="sell:${p.id}:${v}">Bán ${fmt(v)}</button></div>`; }).join('')}</div><p class="mnote">Đăng bán theo giá trị cầu thủ. Có người mua thì tiền về ví. Mỗi người đăng tối đa 6 cầu thủ, đội giữ tối thiểu ${host?GMK_MIN_H:GMK_MIN_G}.</p>`:'<p class="mnote">Bạn chưa có đội bóng.</p>'; }
+    body+=L.length?`<div class="gplg">${L.map(l=>`<div class="gprow">${pr(l.p)}<small>${sdEsc(l.byName||'')}</small>${l.by===me?`<button class="btn" data-gmk="unlist:${l.id}">Rút</button>`:`<button class="btn primary" data-gmk="buy:${l.id}:${l.price}" ${(!open||!mine||W.bank<l.price)?'disabled':''}>${fmt(l.price)}</button>`}</div>`).join('')}</div>`:`<p class="mnote">${open?'Chợ đang trống, thử lại sau.':'Chợ trống. Cầu thủ mới được bơm vào khi kỳ chuyển nhượng mở.'}</p>`;
+    if(!mine) body+=`<p class="mnote">Mua hoặc lập một đội ${sp==='bb'?'bóng rổ':'bóng đá'} ở sân để tham gia chợ.</p>`; }
+  else { body+=mine?`<div class="gplg">${mine.players.slice().sort((a,b)=>sp==='bb'?bbOvr(b)-bbOvr(a):b.ca-a.ca).map(p=>{ const v=Math.round(gmkVal(sp,p)/1000)*1000||gmkVal(sp,p); return `<div class="gprow">${pr(p)}<button class="btn" data-gmk="sell:${p.id}:${v}" ${open?'':'disabled'}>Bán ${fmt(v)}</button></div>`; }).join('')}</div><p class="mnote">Đăng bán theo giá trị cầu thủ, chỉ trong kỳ chuyển nhượng. Có người mua thì tiền về ví. Mỗi người đăng tối đa 6 cầu thủ, đội giữ tối thiểu ${host?lim.minH:lim.minG}, tối đa ${lim.max}.</p>`:'<p class="mnote">Bạn chưa có đội ở môn này.</p>'; }
   modal({kick:'Thị trường chuyển nhượng chung', title:'Chợ cầu thủ', html:true, body, yes:'Đóng'});
 }
 $('mBody').addEventListener('click',e=>{
-  const O=e.target.closest('[data-gmkopen]'); if(O){ $('modal').hidden=true; gmkOpen(); return; }
+  const O=e.target.closest('[data-gmkopen]'); if(O){ $('modal').hidden=true; if(O.dataset.gmkopen==='bb') GMK.sp='bb'; gmkOpen(); return; }
   const G=e.target.closest('[data-gmk]'); if(!G||G.disabled) return; const [a,x,y]=G.dataset.gmk.split(':'), N=window.SDNet; if(!N||!N.inRoom()) return;
-  if(a==='tab'){ gmkRender(x); return; }
-  const d=a==='buy'?{t:'mkbuy',id:x,price:+y}:a==='sell'?{t:'mklist',pid:x,price:+y}:{t:'mkunlist',id:x};
+  if(a==='tab'){ gmkRender(x); return; } if(a==='sp'){ GMK.sp=x; gmkRender(); return; }
+  const sp=GMK.sp, d=a==='buy'?{t:'mkbuy',sp,id:x,price:+y}:a==='sell'?{t:'mklist',sp,pid:x,price:+y}:{t:'mkunlist',sp,id:x};
   if(N.isHost()){ const r=gmkAct({kind:'host',key:'host',name:pName()},d); toast(r[1]); save(); sdvSendAll(); gmkRender(); return; }
   if(a==='buy'&&W.bank<+y){ toast(`Cần ${fmt(+y)}.`); return; }
   gpTxNew('prop',d,a==='buy'?+y:0); toast('Đang gửi yêu cầu…'); });
