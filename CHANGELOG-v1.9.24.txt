@@ -53,3 +53,11 @@ v1.9.31 · KHÁCH QUẢN LÝ ĐẦY ĐỦ CLB BÓNG ĐÁ
 - Sức mạnh đội trong giải tính từ đội hình chính, sơ đồ và HLV thật của khách. Tên, viết tắt, màu áo đổi theo CLB (tên trùng đội khác thì giữ tên cũ).
 - Như offline: khách trả lương cầu thủ/HLV/tuyển trạch mỗi ngày, nhận tiền vé trận sân nhà, danh tiếng và phong độ theo kết quả; cầu thủ thêm tuổi khi giải của chủ phòng sang mùa. Đội có CLB đầy đủ không nhận khoản thưởng cố định mỗi trận như trước.
 - CLB riêng cũ của khách (nếu có) không bị ảnh hưởng, vẫn mở được bằng "CLB riêng của tôi".
+
+v1.9.32 · KHÁCH: XEM TRỰC TIẾP, CÚP QG, C1, QUẢN LÝ BÓNG RỔ
+- Bóng đá: khách xem trực tiếp trận của đội mình (theo ngày và giờ chủ phòng, trước 21:00), đổi lối chơi trong trận; kết quả gửi về giải của chủ phòng. Không xem thì chủ phòng tự đá như cũ.
+- Cúp Quốc Gia và Cúp C1 hiện trong CLB của khách (tab Cúp), đội khách đá cúp như chủ phòng; thưởng từng vòng, danh hiệu cúp về CLB khách.
+- Cúp C1: top 4 giải VĐQG mùa trước giành vé (trước là top 2), áp dụng cho mọi đội kể cả chủ phòng và đội khách.
+- Hết mùa: đội khách nhận thưởng theo thứ hạng, danh hiệu vô địch, lịch sử mùa giải.
+- Bóng rổ: khách có màn quản lý CLB đầy đủ như offline (tổng quan, đội hình, chiến thuật, lịch tập, lịch đấu, chuyển nhượng, HLV, CLB & sân, luật), lưu vào save chủ phòng. Chủ phòng mô phỏng trận bằng cầu thủ, đội hình, chiến thuật và HLV thật của khách. Khách xem trực tiếp trận của mình, nhận tiền vé, thưởng vô địch playoff; trả lương, tập luyện hằng ngày.
+- Mở quản lý bóng rổ: trong màn giải bóng rổ (sân bóng rổ của khách), nút "Quản lý CLB bóng rổ của tôi".

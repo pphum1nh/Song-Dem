@@ -9389,7 +9389,7 @@ function isoCar(x0,y0,o){
    ========================================================= */
 const NAT_D=[6,18,34,50], C1_D=[14,26,42,58], RD_N=['Vòng 1/8','Tứ kết','Bán kết','Chung kết'];
 const CUPS={N:{n:'Cúp Quốc Gia', s:'Cúp QG', days:NAT_D, win:[100000,100000,100000,300000], fame:[1,1,2,6], d:'Đấu loại trực tiếp 16 đội (8 đội VĐQG + 8 đội hạng dưới), đá một trận, hoà thì đá luân lưu. Thưởng cộng dồn: vào tứ kết $100.000, bán kết $200.000, á quân $300.000, vô địch $600.000.'},
-  C:{n:'Cúp C1 Châu Lục', s:'C1', days:C1_D, win:[250000,250000,400000,600000], fame:[2,3,4,15], d:'16 CLB mạnh nhất châu lục, gồm top 2 giải VĐQG mùa trước. Đấu loại trực tiếp một trận. Thưởng cộng dồn: vào tứ kết $250.000, bán kết $500.000, á quân $900.000, vô địch $1.500.000.'}};
+  C:{n:'Cúp C1 Châu Lục', s:'C1', days:C1_D, win:[250000,250000,400000,600000], fame:[2,3,4,15], d:'16 CLB mạnh nhất châu lục, gồm top 4 giải VĐQG mùa trước. Đấu loại trực tiếp một trận. Thưởng cộng dồn: vào tứ kết $250.000, bán kết $500.000, á quân $900.000, vô địch $1.500.000.'}};
 const FC_LOWER=[['Làng Chài FC','LCH'],['Đường Ray United','ĐRU'],['Chợ Đêm FC','CĐF'],['Xóm Củi','XCU'],['Phà Đen','PĐE'],['Cầu Tre FC','CTF'],['Hẻm Sâu','HSA'],['Đồi Thông','ĐTH']];
 const FC_FOREIGN=[['Aurelia FC','AUR'],['Nordhavn SK','NOR'],['Castellano CF','CAS'],['Sankt Elmar','SEL'],['Vila Serena','VSE'],['Olympia Tessar','OLT'],['Dynamo Krasnel','DKR'],['Lagoa Atlético','LAG'],['Union Brevik','UBR'],['Sporting Almara','SAL'],['Inter Valdoro','IVA'],['Red Harbor FC','RHF'],['Kaiserfeld','KSF'],['Celestia SC','CEL']];
 const FX_FIRST=['Luca','Mateo','Jonas','Rafael','Hugo','Nils','Tomas','Iker','Bruno','Emil','Kai','Dario','Sven','Milo','Elias','Andrej'], FX_LAST=['Varga','Lindqvist','Moretti','Okafor','Duarte','Novak','Brandt','Castell','Haugen','Silvano','Kerrigan','Petrov','Almeida','Holm','Rossel','Dvorin'];
@@ -9404,8 +9404,8 @@ function fcGenCups(y,from){
   const shuf=a=>{ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
   const mk=(k,teams)=>{ const day=yStart(y)+CUPS[k].days[0]-1; if(day<from) return; const t=shuf(teams); for(let i=0;i<8;i++) F.fix.push({comp:k, rd:0, slot:i, day, h:t[2*i], a:t[2*i+1], played:false}); };
   mk('N',[0,1,2,3,4,5,6,7,'e0','e1','e2','e3','e4','e5','e6','e7']);
-  let q=F.c1q; if(!q){ q=F.ai.map((a,i)=>[i+1,a.str]).sort((a,b)=>b[1]-a[1]).slice(0,2).map(x=>x[0]); F.c1q=q; }
-  mk('C',q.concat(Array.from({length:14},(_,i)=>'e'+(8+i))));
+  let q=F.c1q; if(!q){ q=F.ai.map((a,i)=>[i+1,a.str]).sort((a,b)=>b[1]-a[1]).slice(0,4).map(x=>x[0]); F.c1q=q; }
+  mk('C',q.concat(Array.from({length:16-q.length},(_,i)=>'e'+(8+i))));
 }
 const fcWin=x=>x.hs>x.as?x.h:x.hs<x.as?x.a:(x.pw==='a'?x.a:x.h);
 const fcStrOf=i=>i===0?fcStr():fcTeam(i).str;
@@ -9444,7 +9444,7 @@ function fcCupHTML(){
     h+=`<h3 class="sh">${C.n}</h3><p class="shop-note">${C.d}</p>`;
     if(cw!=null) h+=`<div class="ffown"><h4>Nhà vô địch mùa này: ${fcTeam(cw).n}</h4></div>`;
     if(!L.length){ h+=`<div class="illrow"><p>Mùa này giải đã khởi tranh trước khi bạn tiếp quản CLB. Chờ mùa sau.</p></div>`; return; }
-    if(k==='C'&&!L.some(x=>x.h===0||x.a===0)) h+=`<p class="req">${F.name} không dự Cúp C1 mùa này. Đứng top 2 giải VĐQG để giành vé mùa sau.</p>`;
+    if(k==='C'&&!L.some(x=>x.h===0||x.a===0)) h+=`<p class="req">${F.name} không dự Cúp C1 mùa này. Đứng top 4 giải VĐQG để giành vé mùa sau.</p>`;
     for(let r=0;r<4;r++){ const R=L.filter(x=>x.rd===r).sort((a,b)=>a.slot-b.slot);
       h+=`<div class="cupround"><h4>${RD_N[r]} · Ngày ${yStart(F.year)+C.days[r]-1} · thắng được ${fmt(C.win[r])}</h4>`+(R.length?R.map(x=>{ const w=x.played?fcWin(x):null;
         return `<div class="cupfix${x.h===0||x.a===0?' me':''}"><span class="${w===x.h?'w':''}">${fcTeam(x.h).n}</span><b>${x.played?`${x.hs}–${x.as}`:'–'}</b><span class="${w===x.a?'w':''}">${fcTeam(x.a).n}</span>${x.pw?`<small>Luân lưu ${x.pen}</small>`:''}</div>`; }).join(''):'<p class="shop-note">Chờ kết quả vòng trước.</p>')+'</div>'; }
@@ -9469,13 +9469,13 @@ function fcSeasonEnd(d){
   F.hist.push({y:F.year, pos, champ:fcTeam(T[0].i).n, runner:fcTeam(T[1].i).n, nat:cw.N!=null?fcTeam(cw.N).n:null, c1:cw.C!=null?fcTeam(cw.C).n:null, boot:B?{n:B.n, team:fcTeam(B.t).n, g:B.g}:null});
   if(pos===1&&F.coach){ cEnsure(F.coach); F.coach.trophies++; F.coach.hist.push({d, t:`Vô địch quốc gia cùng ${F.name}`}); }
   if(pos===1){ F.titles=(F.titles||0)+1; F.fame=Math.min(100,F.fame+8); addFame(5); out+=' VÔ ĐỊCH QUỐC GIA! Danh tiếng CLB +8.'; } else if(pos<=3) F.fame=Math.min(100,F.fame+3);
-  if(pos<=2) out+=' Giành vé dự Cúp C1 Châu Lục mùa sau!';
+  if(pos<=4) out+=' Giành vé dự Cúp C1 Châu Lục mùa sau!';
   if(B) out+=` Chiếc giày vàng: ${B.n} (${fcTeam(B.t).short}) ${B.g} bàn.`;
   if(F.coach) F.coach.sat=Math.max(0,Math.min(100,F.coach.sat+(pos<=2?15:pos>=6?-20:0)));
   (F.youth||[]).forEach(p=>p.age++); const rel=(F.youth||[]).filter(p=>p.age>=19); if(rel.length){ F.youth=F.youth.filter(p=>p.age<19); out+=` ${rel.length} cầu thủ trẻ đủ 19 tuổi không được lên đội một nên rời học viện.`; }
   F.players.forEach(p=>{ p.age++; if(p.age>31) p.ca=Math.max(10,p.ca-(1+Math.random()*3)*(1-.2*facLv('med'))); p.val=fcVal({...p,ca:Math.round(p.ca)}); });
   F.ai.concat(F.ext).forEach(a=>{ a.str=Math.max(25,Math.min(88,a.str+Math.round((Math.random()-.4)*6))); });
-  F.c1q=[T[0].i,T[1].i];
+  F.c1q=T.slice(0,4).map(t=>t.i);
   fcGenSeason(fcYear(d),d);
   return out;
 }
@@ -19734,7 +19734,10 @@ function gpHostRecv(d,from){
   if(d.t==='ack'){ ldAck(oid,String(d.id||'')); return; }
   if(d.t==='hi'){ ldLegacy(oid,name); Object.values(G).forEach(P=>{ if(P.oid===oid&&P.owed>0){ ldAdd(oid,P.owed,`Lãi cửa hàng của bạn trong thế giới của ${pName()} (gồm thời gian AI quản lý)`); P.owed=0; } }); save(); ldSend(oid); return; }
   if(d.t==='gxsave'){ gpxHostSave(d,oid,from); return; }
-  if(d.t==='gxopen'){ if(gpxHostEnsure()) save(); sdvSendAll(from); return; }
+  if(d.t==='gxopen'){ const a1=gpxHostEnsure(), a2=gpbHostEnsure(); if(a1||a2) save(); sdvSendAll(from); return; }
+  if(d.t==='gxres'){ gpxHostRes(d,oid,from); return; }
+  if(d.t==='gbsave'){ gpbHostSave(d,oid,from); return; }
+  if(d.t==='gbres'){ gpbHostRes(d,oid); return; }
   if(d.t==='mkopen'){ if(!W.fc&&!W.bb) return; gmkEns(); save(); sdvSendAll(from); return; }
   if(!d.tx) return;
   const X=(W.gtx&&typeof W.gtx==='object')?W.gtx:(W.gtx={}), xk=oid+':'+String(d.tx).slice(0,24);
@@ -19762,7 +19765,7 @@ function gpHostRecv(d,from){
     if(d.t==='bbnew'){ if(P.team) return bad('Sân này đã có đội.'); if(gpBbOwned(B,oid)>=0) return bad('Bạn đã có đội trong giải.'); if(gpNameTaken(td.n)) return bad('Tên đội đã được dùng trong giải.');
       const free=B.ai.map((a,k)=>k).filter(k=>!(B.ai[k].owner)); if(!free.length||B.ai.filter(a=>a.owner).length>=GP_CFG.teamMax) return bad('Giải đã đủ đội của người chơi online.');
       const k=free[Math.floor(Math.random()*free.length)], old=B.ai[k];
-      B.ai[k]={n:td.n, short:td.short, c1:td.c1, c2:td.c2, str:GP_CFG.bbStr, roster:null, w:0, l:0, owner:{oid, name}, orig:old};
+      B.ai[k]={n:td.n, short:td.short, c1:td.c1, c2:td.c2, str:GP_CFG.bbStr, roster:null, w:0, l:0, owner:{oid, name}, orig:old}; B.ai[k].club=gpbClubNew(B.ai[k]); B.ai[k].roster=B.ai[k].club.players; B.ai[k].str=gpbStr(B.ai[k].club);
       P.team={k, n:td.n}; (P.log=P.log||[]).push({d:dd, txt:`Lập đội ${td.n} thi đấu giải VĐQG bóng rổ.`}); toast(`${name} lập đội bóng rổ ${td.n}, thay ${old.n} ở giải VĐQG.`); return done(true,`Đội ${td.n} đã vào giải VĐQG bóng rổ của ${pName()}.`); }
     if(!P.team) return bad('Sân chưa có đội.'); const t=B.ai[P.team.k]; if(!t||!t.owner||t.owner.oid!==oid) return bad('Không tìm thấy đội của bạn.'); if(gpNameTaken(td.n,t.n)) return bad('Tên đội đã được dùng trong giải.');
     Object.assign(t,td); P.team.n=td.n; return done(true,'Đã cập nhật đội bóng rổ.'); }
@@ -19788,8 +19791,8 @@ function gpGuestRecv(d){
   const N=gpN();
   if(d.t==='pay'){ const id=String(d.id||''); if(id){ N.send('prop',{t:'ack', id}); const seen=(W.netSeen=Array.isArray(W.netSeen)?W.netSeen:[]); if(seen.includes(id)) return; seen.push(id); if(seen.length>80) seen.splice(0,seen.length-80); }
     if(d.amt>0){ addBank(d.amt); save(); toast(`${d.why||'Tiền được chuyển về'}: +${fmt(d.amt)}.`); } else save(); return; }
-  if(d.t==='gxmsg'){ toast(d.txt||''); const C=gpxLocal(), T=gpxOwnTeam(); if(C&&T){ C.name=T.a.n; GPX.sig=''; } if(GPX.on&&W.mode==='fc') renderFc(); return; }
-  if(d.t==='ok'){ const p=gpTxDone(d.tx,false); if(p&&p.msg&&/^mk/.test(p.msg.t)){ try{ gpxApplyEx(d.ex); }catch(e){ console.error(e); } toast(d.txt||'Xong.'); setTimeout(()=>{ if(gmkShown()) gmkRender(); },900); return; } if(p) modal({kick:'Sở hữu online', good:true, title:'Hoàn tất', body:d.txt||'Xong.', yes:'Tuyệt'}); return; }
+  if(d.t==='gxmsg'){ toast(d.txt||''); const C=gpxLocal(), T=gpxOwnTeam(); if(C&&T){ C.name=T.a.n; GPX.sig=''; } const Cb=gpbLocal(), Tb=gpbOwnTeam(); if(Cb&&Tb){ Cb.name=Tb.a.n; GPXB.sig=''; } if((GPX.on||GPXB.on)&&W.mode==='fc') renderFc(); return; }
+  if(d.t==='ok'){ const p=gpTxDone(d.tx,false); if(p&&p.msg&&/^mk/.test(p.msg.t)){ try{ gpxApplyEx(d.ex); gpbApplyEx(d.ex); }catch(e){ console.error(e); } toast(d.txt||'Xong.'); setTimeout(()=>{ if(gmkShown()) gmkRender(); },900); return; } if(p) modal({kick:'Sở hữu online', good:true, title:'Hoàn tất', body:d.txt||'Xong.', yes:'Tuyệt'}); return; }
   if(d.t==='deny'){ const p=gpTxDone(d.tx,true); if(p&&p.msg&&/^mk/.test(p.msg.t)){ toast(`${d.txt||''}${p.amt>0?` Đã hoàn lại ${fmt(p.amt)}.`:''}`); setTimeout(()=>{ if(gmkShown()) gmkRender(); },900); return; } if(p) modal({kick:'Sở hữu online', title:'Không thực hiện được', body:`${d.txt||''}${p.amt>0?` Đã hoàn lại ${fmt(p.amt)}.`:''}`, yes:'OK'}); return; }
 }
 function gpInit(){ const N=gpN(); if(!N||N._gp) return; N._gp=true;
@@ -19819,7 +19822,7 @@ function gpGuestStadium(orig){
 function gpBbHTML(){
   const me=gpN().oid(), rows=sdvWith(()=>{ const B=W.bb; if(!B) return null; return bbTable().map((t,pos)=>{ const tm=bbTeam(t.i), a=t.i>0?B.ai[t.i-1]:null; return {pos:pos+1,n:tm.n,w:t.w,l:t.l,owner:a&&a.owner||null}; }); });
   if(!rows) return '<p class="mnote">Chủ phòng chưa có giải VĐQG bóng rổ.</p>';
-  return `<div class="gplg">${rows.map(r=>`<div class="gprow"><b>${r.pos}</b><span class="gpn">${sdEsc(r.n)}${r.owner?` <small>${r.owner.oid===me?'của bạn':sdEsc(r.owner.name)} 👥</small>`:''}</span><i>${r.w}T ${r.l}B</i></div>`).join('')}</div><button class="btn" data-gmkopen="bb" style="width:100%;margin-top:8px">Chợ chuyển nhượng cầu thủ</button>`;
+  return `<div class="gplg">${rows.map(r=>`<div class="gprow"><b>${r.pos}</b><span class="gpn">${sdEsc(r.n)}${r.owner?` <small>${r.owner.oid===me?'của bạn':sdEsc(r.owner.name)} 👥</small>`:''}</span><i>${r.w}T ${r.l}B</i></div>`).join('')}</div>${rows.some(r=>r.owner&&r.owner.oid===me)?'<button class="btn primary" data-gpbbm="1" style="width:100%;margin-top:8px">Quản lý CLB bóng rổ của tôi</button>':''}<button class="btn" data-gmkopen="bb" style="width:100%;margin-top:8px">Chợ chuyển nhượng cầu thủ</button>`;
 }
 /* biểu mẫu tên đội + màu áo */
 let GPF=null;
@@ -19948,7 +19951,7 @@ function gmkNum(arr){ for(let n=1;n<100;n++) if(!arr.some(p=>p.num===n)) return 
 function gmkTeam(actor,sp){ const L=GMK_LIM[sp], host=actor.kind==='host';
   if(sp==='bb'){ const B=W.bb; if(!B) return null;
     if(host) return {sp, players:B.players, min:L.minH, max:L.max, after:()=>{ try{ bbAutoLine(); }catch(e){} }};
-    const k=gpBbOwned(B,actor.key); if(k<0) return null; const a=B.ai[k]; return {sp, players:bbAiRoster(a), min:L.minG, max:L.max, after:()=>{}}; }
+    const k=gpBbOwned(B,actor.key); if(k<0) return null; const a=B.ai[k]; if(!a.club){ a.club=gpbClubNew(a); a.roster=a.club.players; } return {sp, players:a.club.players, min:L.minG, max:L.max, after:()=>{ a.roster=a.club.players; a.str=gpbStr(a.club); }}; }
   const F=W.fc; if(!F) return null;
   if(host) return {sp, players:F.players, min:L.minH, max:L.max, after:()=>{ try{ fcAutoXI(); }catch(e){} }};
   const k=gpFcOwned(F,actor.key); if(k<0) return null; const a=F.ai[k]; if(!a.club){ a.club=gpxClubNew(a); } return {sp, players:a.club.players, min:L.minG, max:L.max, after:()=>{ a.str=gpxStr(a.club); }}; }
@@ -19984,7 +19987,7 @@ const gmkShown=()=>!$('modal').hidden&&/chuyển nhượng chung/i.test($('mKick
 function gmkRender(tab){
   const N=window.SDNet; if(!N||!N.inRoom()) return; if(tab) GMK.tab=tab; const host=N.isHost(), R=host?W:SDV.w; if(!R) return; const sp=GMK.sp, M=R.gmk||{list:[]}, me=host?'host':N.oid();
   const day=dayOf(R.clock||W.clock), open=twOpen(day);
-  let mine=null; if(sp==='bb'){ const B=R.bb; if(B){ if(host) mine={name:B.name, players:B.players}; else { const a=(B.ai||[]).find(x=>x.owner&&x.owner.oid===me); if(a) mine={name:a.n, players:a.roster||[]}; } } }
+  let mine=null; if(sp==='bb'){ const B=R.bb; if(B){ if(host) mine={name:B.name, players:B.players}; else { const a=(B.ai||[]).find(x=>x.owner&&x.owner.oid===me); if(a){ const C=gpbLocal(); mine={name:a.n, players:(C&&C.players)||(a.club&&a.club.players)||a.roster||[]}; } } } }
   else { const F=R.fc; if(F){ if(host) mine={name:F.name, players:F.players}; else { const a=(F.ai||[]).find(x=>x.owner&&x.owner.oid===me); if(a){ const C=gpxLocal(); mine={name:a.n, players:(C&&C.players)||(a.club&&a.club.players)||[]}; } } } }
   const L0=M.list.filter(l=>(l.sp||'fc')===sp), L=L0.slice().sort((a,b)=>sp==='bb'?bbOvr(b.p)-bbOvr(a.p):b.p.ca-a.p.ca);
   const pr=p=>sp==='bb'?`<span class="gpn">${sdEsc(p.n)} <small>${p.pos} · ${p.age||'?'}t · OVR ${bbOvr(p)}${p.nat==='F'?' · ngoại binh':''}</small></span>`:`<span class="gpn">${sdEsc(p.n)} <small>${p.pos} · ${p.age}t · CA ${Math.round(p.ca)}/PA ${p.pa}</small></span>`;
@@ -19998,13 +20001,14 @@ function gmkRender(tab){
   modal({kick:'Thị trường chuyển nhượng chung', title:'Chợ cầu thủ', html:true, body, yes:'Đóng'});
 }
 $('mBody').addEventListener('click',e=>{
+  const BM=e.target.closest('[data-gpbbm]'); if(BM){ $('modal').hidden=true; gpbEnter(); return; }
   const O=e.target.closest('[data-gmkopen]'); if(O){ $('modal').hidden=true; if(O.dataset.gmkopen==='bb') GMK.sp='bb'; gmkOpen(); return; }
   const G=e.target.closest('[data-gmk]'); if(!G||G.disabled) return; const [a,x,y]=G.dataset.gmk.split(':'), N=window.SDNet; if(!N||!N.inRoom()) return;
   if(a==='tab'){ gmkRender(x); return; } if(a==='sp'){ GMK.sp=x; gmkRender(); return; }
   const sp=GMK.sp, d=a==='buy'?{t:'mkbuy',sp,id:x,price:+y}:a==='sell'?{t:'mklist',sp,pid:x,price:+y}:{t:'mkunlist',sp,id:x};
   if(N.isHost()){ const r=gmkAct({kind:'host',key:'host',name:pName()},d); toast(r[1]); save(); sdvSendAll(); gmkRender(); return; }
   if(a==='buy'&&W.bank<+y){ toast(`Cần ${fmt(+y)}.`); return; }
-  if(sp==='fc') gpxPush(false); gpTxNew('prop',d,a==='buy'?+y:0); toast('Đang gửi yêu cầu…'); });
+  if(sp==='fc') gpxPush(false); else gpbPush(false); gpTxNew('prop',d,a==='buy'?+y:0); toast('Đang gửi yêu cầu…'); });
 window.SD.market=gmkOpen;
 (function(){ const st=document.createElement('style'); st.textContent=`.gpmktabs{display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:6px} .gpmktabs .btn[aria-pressed=true]{border-color:#ffd36b; box-shadow:0 0 0 2px rgba(255,211,107,.5)}`; document.head.appendChild(st); })();
 function gmkInit(){ const N=window.SDNet; if(!N||N._gmk) return; N._gmk=true; N.on('world',d=>{ if(!d||d.t!=='snap'||N.isHost()) return; if(gmkShown()) setTimeout(()=>{ if(gmkShown()) gmkRender(); },80); }); }
@@ -20058,21 +20062,26 @@ function gpxLocal(){ const T=gpxOwnTeam(); if(!T||!T.a.club) return null; const 
 function gpxView(){ const T=gpxOwnTeam(); if(!T) return null; const C=gpxLocal(); if(!C) return null; const H=T.H, g=T.k+1, m=i=>i===g?0:i===0?g:i;
   const hostT={n:H.name, short:H.short, c1:H.kit.c1, c2:H.kit.c2, str:gpxStr(H), names:(H.players||[]).slice(0,11).map(p=>p.n)};
   C.ai=[1,2,3,4,5,6,7].map(j=>{ const t=m(j)===0?hostT:H.ai[m(j)-1]; return {n:t.n, short:t.short, c1:t.c1, c2:t.c2, str:t.str, names:(t.names||[]).slice()}; });
-  C.fix=(H.fix||[]).filter(x=>(x.comp||'L')==='L').map(x=>Object.assign({},x,{h:m(x.h), a:m(x.a), live:false, ev:(x.ev||[]).map(e=>Object.assign({},e,typeof e.t==='number'?{t:m(e.t)}:{}))}));
-  C.year=H.year; C.ext=[]; C.cupY=H.year; C.px={g, cid:C.cid}; C.fac=C.fac||{}; C.youth=C.youth||[]; C.hist=C.hist||[]; C.scouts=C.scouts||[]; C.xi=C.xi||[];
+  const mm=i=>typeof i==='number'?m(i):i;
+  C.fix=(H.fix||[]).map(x=>Object.assign({},x,{h:mm(x.h), a:mm(x.a), live:false, ev:(x.ev||[]).map(e=>Object.assign({},e,typeof e.t==='number'?{t:m(e.t)}:{}))}));
+  C.year=H.year; C.ext=(H.ext||[]).map(e=>Object.assign({},e)); C.cupY=H.cupY!=null?H.cupY:H.year; C.c1q=(H.c1q||[]).map(mm); C.cupW={}; Object.entries(H.cupW||{}).forEach(([k,v])=>{ C.cupW[k]=mm(v); }); C.px={g, cid:C.cid}; C.fac=C.fac||{}; C.youth=C.youth||[]; C.hist=C.hist||[]; C.scouts=C.scouts||[]; C.xi=C.xi||[];
   /* qua mùa giải của chủ phòng: cầu thủ thêm tuổi */
   if(C.hy==null) C.hy=H.year;
+  if(C.hy<H.year&&Array.isArray(H.lastTbl)){ const pos=H.lastTbl.indexOf(g)+1; if(pos>0){ const prize=[200000,120000,80000,50000,30000,20000,15000,10000][pos-1]||0, last=(H.hist||[])[(H.hist||[]).length-1];
+      W.bank+=prize; C.lastPos=pos; C.hist.push({y:C.hy, pos, champ:last?last.champ:'', runner:last?last.runner:'', nat:last?last.nat:null, c1:last?last.c1:null, boot:last?last.boot:null});
+      if(pos===1){ C.titles=(C.titles||0)+1; C.fame=Math.min(100,(C.fame||0)+8); } else if(pos<=3) C.fame=Math.min(100,(C.fame||0)+3);
+      toast(`Hết mùa giải: ${C.name} xếp thứ ${pos}, thưởng ${fmt(prize)}.${pos===1?' VÔ ĐỊCH QUỐC GIA!':''}${pos<=4?' Giành vé dự Cúp C1 mùa sau!':''}`); } }
   while(C.hy<H.year){ C.hy++; C.players.forEach(p=>{ p.age++; if(p.age>31) p.ca=Math.max(10,p.ca-(1+Math.random()*3)*(1-.2*((C.fac||{}).med||0))); p.val=fcVal({...p,ca:Math.round(p.ca)}); }); (C.youth||[]).forEach(p=>p.age++); C.youth=(C.youth||[]).filter(p=>p.age<19); }
   return C; }
 /* kết quả mới của đội khách: vé, danh tiếng, phong độ như offline */
 function gpxResults(C){ const seen=Array.isArray(C.seen)?C.seen:(C.seen=[]); let out='';
   const keep=W.fc, was=GPX.on; W.fc=C;
-  try{ C.fix.forEach(x=>{ if(!x.played||(x.h!==0&&x.a!==0)) return; const key=x.day+':'+x.h+':'+x.a; if(seen.includes(key)) return; seen.push(key); try{ out+=fcAfterMatch(x); }catch(e){ console.error(e); } }); }
+  try{ C.fix.slice().forEach(x=>{ if(!x.played||(x.h!==0&&x.a!==0)) return; const key=x.day+':'+x.h+':'+x.a; if(seen.includes(key)) return; seen.push(key); try{ out+=fcPlayed(x); }catch(e){ console.error(e); } }); }
   finally{ W.fc=keep; } if(seen.length>80) seen.splice(0,seen.length-80); return out; }
 function gpxRefresh(){ const C=gpxView(); if(!C) return null; const out=gpxResults(C); if(out){ toast('Bóng đá:'+out); save(); } return C; }
 function gpxEnter(){ const T=gpxOwnTeam(); if(!T){ toast('Bạn chưa sở hữu đội nào trong giải của chủ phòng.'); return; }
   if(!T.a.club){ GPX.want=true; gpN().send('prop',{t:'gxopen'}); toast('Đang tải dữ liệu CLB từ chủ phòng…'); return; }
-  const C=gpxRefresh(); if(!C) return; $('modal').hidden=true;
+  if(GPXB.on) gpbExit(); const C=gpxRefresh(); if(!C) return; $('modal').hidden=true;
   if(!GPX.on){ GPX.keep=W.fc; } GPX.on=true; W.fc=C; FCT='hub'; FCRES=null; setMode('fc'); renderFc(); window.scrollTo(0,0); save(); }
 function gpxExit(){ if(!GPX.on) return; GPX.on=false; W.fc=GPX.keep||null; GPX.keep=null; gpxPush(true); save(); }
 function gpxStrip(C){ const o={}; Object.keys(C).forEach(k=>{ if(!GPX_DROP.includes(k)) o[k]=C[k]; }); return o; }
@@ -20080,8 +20089,8 @@ function gpxPush(force){ const N=gpN(); if(!N||!N.inRoom()||N.isHost()) return; 
   if(sig===GPX.sig&&!force) return; if(sig===GPX.sig&&force&&GPX.sent===C.rev) return; GPX.sig=sig; C.rev=(C.rev||0)+1; GPX.sent=C.rev; N.send('prop',{t:'gxsave', cid:C.cid, rev:C.rev, club:JSON.parse(sig)}); }
 /* các móc vào máy CLB offline */
 { const _sd=fcSimDue; fcSimDue=function(){ if(W.fc&&W.fc.px) return; return _sd.apply(this,arguments); }; }
-{ const _mt=fcMyToday; fcMyToday=function(){ if(W.fc&&W.fc.px) return null; return _mt.apply(this,arguments); }; }
-{ const _se=fcSeasonEnd; fcSeasonEnd=function(){ if(W.fc&&W.fc.px) return ''; return _se.apply(this,arguments); }; }
+{ const _mt=fcMyToday; fcMyToday=function(){ const F=W&&W.fc; if(F&&F.px){ const H=SDV.w; if(!H) return null; const hd=dayOf(H.clock), hm=((H.clock%1440)+1440)%1440; if(hm>=FC_END) return null; const seen=F.seen||[]; return F.fix.find(x=>x.day===hd&&(x.h===0||x.a===0)&&!x.played&&!seen.includes(x.day+':'+x.h+':'+x.a))||null; } return _mt.apply(this,arguments); }; }
+{ const _se=fcSeasonEnd; fcSeasonEnd=function(){ if(W.fc&&W.fc.px) return ''; try{ const F=fc(); fcEnsure(); fcFinishAll(); F.lastTbl=fcTable().map(t=>t.i); }catch(e){ console.error(e); } return _se.apply(this,arguments); }; }
 { const _od=fcOfferDaily; fcOfferDaily=function(){ if(W.fc&&W.fc.px) return ''; return _od.apply(this,arguments); }; }
 { const _fd=fcDaily; fcDaily=function(d){ let out='';
     if(GPX.on){ const C=W.fc; out+=_fd.apply(this,arguments); if(GPX.keep){ W.fc=GPX.keep; try{ out+=_fd.apply(this,arguments); }finally{ W.fc=C; } } return out; }
@@ -20089,8 +20098,8 @@ function gpxPush(force){ const N=gpN(); if(!N||!N.inRoom()||N.isHost()) return; 
     try{ const C=gpxRefresh(); if(C){ const keep=W.fc; W.fc=C; try{ out+=_fd.apply(this,arguments); }finally{ W.fc=keep; } } }catch(e){ console.error(e); }
     return out; }; }
 { const _sm2=setMode; setMode=function(m){ if(GPX.on&&m!=='fc') gpxExit(); return _sm2.apply(this,arguments); }; }
-{ const _rf=renderFc; renderFc=function(){ const r=_rf.apply(this,arguments); if(W.fc&&W.fc.px&&W.mode==='fc'){ const box=$('fcBox'); box.querySelectorAll('[data-fcgo="cup"]').forEach(b=>b.remove());
-    if(FCT==='hub'&&!box.querySelector('.gpxnote')){ const p=document.createElement('p'); p.className='shop-note gpxnote'; const hm=gpN().hostMember(); p.textContent=`CLB của bạn đá giải VĐQG trong thế giới của ${hm?hm.name:'chủ phòng'}. Mọi thay đổi được lưu vào save của chủ phòng. Kết quả trận đấu và tiền vé về khi chủ phòng đá xong.`; box.appendChild(p); } }
+{ const _rf=renderFc; renderFc=function(){ const r=_rf.apply(this,arguments); if(W.fc&&W.fc.px&&W.mode==='fc'){ const box=$('fcBox'); { const lb=box.querySelector('[data-fc="live"]'); if(lb&&fcMyToday()) lb.disabled=false; }
+    if(FCT==='hub'&&!box.querySelector('.gpxnote')){ const p=document.createElement('p'); p.className='shop-note gpxnote'; const hm=gpN().hostMember(); p.textContent=`CLB của bạn đá giải VĐQG trong thế giới của ${hm?hm.name:'chủ phòng'}. Mọi thay đổi được lưu vào save của chủ phòng. Có trận hôm nay (theo giờ chủ phòng) thì bấm Xem trực tiếp trước 21:00; không xem thì chủ phòng tự đá. Tiền vé, thưởng cúp về ví bạn.`; box.appendChild(p); } }
   return r; }; }
 setInterval(()=>{ try{ gpxPush(false); }catch(e){} },2500);
 function gpxInit(){ const N=window.SDNet; if(!N||N._gpx) return; N._gpx=true;
@@ -20100,6 +20109,130 @@ function gpxInit(){ const N=window.SDNet; if(!N||N._gpx) return; N._gpx=true;
   }catch(e){ console.error(e); } },60); });
   N.sub(ev=>{ if((ev==='left'||ev==='closed')&&GPX.on){ setMode('map'); } }); }
 window.addEventListener('load',gpxInit);
+
+/* =========================================================
+   v1.9.32 · KHÁCH: XEM TRỰC TIẾP, CÚP QG & C1, QUẢN LÝ CLB BÓNG RỔ
+   ========================================================= */
+/* ---- chủ phòng: nhận kết quả trận khách xem trực tiếp ---- */
+function gpxHostRes(d,oid,from){ const F=W.fc; if(!F||!F.fix) return; const k=gpFcOwned(F,oid); if(k<0) return; const g=k+1, comp=d.comp||'L', rd=Math.floor(+d.rd||0);
+  const x=F.fix.find(f=>f.day===+d.day&&f.h===d.h&&f.a===d.a&&(f.comp||'L')===comp&&(f.rd||0)===rd);
+  if(!x||(x.h!==g&&x.a!==g)) return; if(x.played){ gpN().to(from,'prop',{t:'gxmsg', txt:'Trận này chủ phòng đã đá xong trước khi bạn xem hết, giải dùng kết quả của chủ phòng.'}); return; }
+  const cl=v=>Math.max(0,Math.min(20,Math.floor(+v||0))); x.hs=cl(d.hs); x.as=cl(d.as);
+  x.ev=(Array.isArray(d.ev)?d.ev:[]).slice(0,30).map(e=>({m:Math.max(1,Math.min(120,Math.floor(+e.m||1))), t:(typeof e.t==='number'||typeof e.t==='string')?e.t:x.h, n:String((e&&e.n)||'').slice(0,40), a:e&&e.a?String(e.a).slice(0,40):null}));
+  if(comp!=='L'&&x.hs===x.as&&(d.pw==='h'||d.pw==='a')){ x.pw=d.pw; x.pen=String(d.pen||'').slice(0,8); }
+  x.live=false; x.played=true; let out=''; try{ out=fcPlayed(x); }catch(e){ console.error(e); } if(out&&(x.h===0||x.a===0)) toast('Bóng đá:'+out); save(); sdvSendAll(); }
+{ const _le=fcLiveEnd; fcLiveEnd=function(){ const C=W.fc, px=C&&C.px, x=LV.x, was=!!(x&&x.played); const r=_le.apply(this,arguments);
+    if(px&&x&&!was&&x.played){ const g=C.px.g, m=i=>typeof i==='number'?(i===g?0:i===0?g:i):i; (C.seen=Array.isArray(C.seen)?C.seen:[]).push(x.day+':'+x.h+':'+x.a);
+      gpN().send('prop',{t:'gxres', day:x.day, h:m(x.h), a:m(x.a), comp:x.comp||'L', rd:x.rd||0, hs:x.hs, as:x.as, pw:x.pw, pen:x.pen, ev:(x.ev||[]).map(e=>Object.assign({},e,{t:m(e.t)}))}); save(); }
+    return r; }; }
+
+/* ---- BÓNG RỔ: CLB đầy đủ cho đội khách ---- */
+const GPXB={on:false, keep:null, want:false, sig:'', sent:0};
+const GPXB_DROP=['ai','games','po','year','sw','sl','px','cands','fa','seen','hy','champY','rev','toJSON'];
+function gpbStr(c){ const top=((c&&c.players)||[]).map(bbOvr).sort((a,b)=>b-a).slice(0,5); return top.length?Math.max(30,Math.min(90,Math.round(top.reduce((a,b)=>a+b,0)/top.length))):50; }
+function gpbClubNew(a){ const ps=bbAiRoster(a).map(p=>gmkBbFull(Object.assign({},p))); ps.forEach((p,i)=>{ if(!p.num) p.num=i+3; });
+  return {cid:'b'+Math.random().toString(36).slice(2,10), rev:0, name:a.n, short:String(a.short||a.n).toUpperCase().slice(0,3), logo:{shape:'circle',c1:a.c1||'#111111',c2:a.c2||'#ff7a1a',sym:'ball'}, lv:0, up:{}, fame:10, ticket:'mid',
+    players:ps, coach:null, lineup:ps.slice(0,5).map(p=>p.id), tac:{pace:'mid',focus:'bal',def:'man'}, plan:['shoot','def','fit','rest','shoot','team','rest'], wins:0, losses:0, titles:0, hist:[]}; }
+function gpbHostEnsure(){ const B=W.bb; if(!B||!B.ai) return false; let ch=false; B.ai.forEach(a=>{ if(a.owner&&!a.club){ a.club=gpbClubNew(a); a.roster=a.club.players; a.str=gpbStr(a.club); ch=true; } }); return ch; }
+function gpbHostSave(d,oid,from){ const B=W.bb; if(!B||!B.ai) return; const k=gpBbOwned(B,oid); if(k<0) return; const a=B.ai[k]; if(!a.club||a.club.cid!==d.cid) return;
+  const c=d.club, rev=Math.floor(+d.rev||0); if(!c||typeof c!=='object'||rev<=(a.club.rev||0)) return; try{ if(JSON.stringify(c).length>150000) return; }catch(e){ return; }
+  const listed=new Set(((W.gmk&&W.gmk.list)||[]).filter(l=>l.by===oid).map(l=>l.p&&l.p.id));
+  c.players=(Array.isArray(c.players)?c.players:[]).filter(p=>p&&typeof p.id==='string'&&p.a&&typeof p.a==='object'&&!listed.has(p.id)).slice(0,BB_ROSTER+3);
+  c.players.forEach(p=>{ if(!BB_POS.includes(p.pos)) p.pos='SF'; BB_ATTR.forEach(([k])=>{ p.a[k]=bbClamp(+p.a[k]||1); }); p.n=String(p.n||'Cầu thủ').slice(0,40); p.form=Math.max(1,Math.min(10,+p.form||6)); gmkBbFull(p); });
+  if(!c.tac||typeof c.tac!=='object') c.tac={pace:'mid',focus:'bal',def:'man'}; if(!BB_PACE[c.tac.pace]) c.tac.pace='mid'; if(!BB_FOCUS[c.tac.focus]) c.tac.focus='bal'; if(!BB_DEF[c.tac.def]) c.tac.def='man';
+  if(c.coach&&typeof c.coach==='object'){ ['off','def','dev'].forEach(k=>{ c.coach[k]=Math.max(1,Math.min(20,+c.coach[k]||1)); }); } else c.coach=null;
+  c.lineup=(Array.isArray(c.lineup)?c.lineup:[]).filter(id=>c.players.some(p=>p.id===id)).slice(0,5); c.cid=a.club.cid; c.rev=rev;
+  const n=gpClean(c.name,24), s=gpClean(c.short,4).toUpperCase();
+  if(n.length>=2&&n!==a.n){ if(gpNameTaken(n,a.n)){ c.name=a.n; gpN().to(from,'prop',{t:'gxmsg', txt:`Tên "${n}" đã có đội dùng trong giải, CLB giữ tên ${a.n}.`}); } else a.n=n; }
+  if(s.length>=2) a.short=s; const hx=v=>typeof v==='string'&&/^#[0-9a-f]{6}$/i.test(v); if(c.logo){ if(hx(c.logo.c1)) a.c1=c.logo.c1; if(hx(c.logo.c2)) a.c2=c.logo.c2; }
+  a.club=c; a.roster=c.players; a.str=gpbStr(c); save(); gpxSnapSoon(); }
+/* chủ phòng mô phỏng: đội khách dùng cầu thủ, đội hình, chiến thuật, HLV thật */
+{ const _bs=bbSide; bbSide=function(i){ const B=BB(); const T=i>0&&B&&B.ai&&B.ai[i-1]; if(!T||!T.club||!Array.isArray(T.club.players)||!T.club.players.length) return _bs.apply(this,arguments);
+    const c=T.club, av=c.players.filter(p=>!p.inj).sort((a,b)=>bbOvr(b)-bbOvr(a)).slice(0,BB_ACTIVE), on=(c.lineup||[]).map(id=>av.find(p=>p.id===id)).filter(Boolean); av.forEach(p=>{ if(on.length<5&&!on.includes(p)) on.push(p); });
+    const ck=c.coach?c.coach:{off:6,def:6}; return {i, n:T.n, short:T.short, col:T.c1, col2:T.c2, tac:Object.assign({pace:'mid',focus:'bal',def:'man'},c.tac), roster:av.map(p=>({id:p.id,n:p.n,pos:p.pos,a:p.a,form:p.form||6,nat:p.nat,fat:0,pf:0})), on:on.map(p=>p.id), off:1+ck.off*.006, dfn:1+ck.def*.006}; }; }
+function gpbHostRes(d,oid){ const B=W.bb; if(!B||!B.games) return; const k=gpBbOwned(B,oid); if(k<0) return; const gi=k+1;
+  const g=B.games.find(x=>!x.played&&x.day===+d.day&&x.h===d.h&&x.a===d.a&&(!!x.po)===(!!d.po)); if(!g||(g.h!==gi&&g.a!==gi)) return;
+  const cl=v=>Math.max(0,Math.min(250,Math.floor(+v||0))); let hs=cl(d.hs), as=cl(d.as); if(hs===as) hs++;
+  const qs=(Array.isArray(d.qs)?d.qs:[]).slice(0,10).map(q=>[cl(q&&q[0]),cl(q&&q[1])]);
+  const S={sc:[hs,as], qs, box:{}}; let out=''; try{ const mine=bbApply(g,S); if(mine){ const home=g.h===0, gate=bbGate(home); W.bank+=gate; } out+=bbPoAfter(g); }catch(e){ console.error(e); } if(out) toast('Bóng rổ:'+out); save(); sdvSendAll(); }
+/* ---- máy khách ---- */
+function gpbOwnTeam(){ const H=SDV.w&&SDV.w.bb, N=gpN(); if(!H||!H.ai||!N||!N.inRoom()||N.isHost()) return null; const me=N.oid(), k=H.ai.findIndex(a=>a.owner&&a.owner.oid===me); return k<0?null:{H,k,a:H.ai[k]}; }
+function gpbDefJSON(C){ if(!Object.prototype.hasOwnProperty.call(C,'toJSON')) Object.defineProperty(C,'toJSON',{value:function(key){ if(key==='bb'&&GPXB.on&&W.bb===this) return GPXB.keep||null; return Object.assign({},this); }, enumerable:false, configurable:true, writable:true}); return C; }
+function gpbLocal(){ const T=gpbOwnTeam(); if(!T||!T.a.club) return null; const hc=T.a.club, S=(W.gbcs&&typeof W.gbcs==='object')?W.gbcs:(W.gbcs={});
+  let C=S[hc.cid]; if(!C||(C.rev||0)<(hc.rev||0)){ C=S[hc.cid]=JSON.parse(JSON.stringify(hc)); if(GPXB.on&&W.bb&&W.bb.px&&W.bb.px.cid===hc.cid) W.bb=C; }
+  gpbDefJSON(C); return C; }
+function gpbView(){ const T=gpbOwnTeam(); if(!T) return null; const C=gpbLocal(); if(!C) return null; const H=T.H, g=T.k+1, m=i=>i===g?0:i===0?g:i;
+  const hostT={n:H.name, short:H.short, c1:H.logo.c1, c2:H.logo.c2, str:gpbStr(H), roster:(H.players||[]).slice().sort((a,b)=>bbOvr(b)-bbOvr(a)).slice(0,10).map(p=>({id:p.id,n:p.n,pos:p.pos,a:p.a,nat:p.nat}))};
+  C.ai=[1,2,3,4,5,6,7].map(j=>{ const t=m(j)===0?hostT:H.ai[m(j)-1]; const o={n:t.n, short:t.short, c1:t.c1, c2:t.c2, str:t.str, roster:t.roster||null, w:t.w||0, l:t.l||0}; if(t.club) o.club=t.club; return o; });
+  C.games=(H.games||[]).map(x=>Object.assign({},x,{h:m(x.h), a:m(x.a)}));
+  C.po=H.po?Object.assign({},H.po,{ser:(H.po.ser||[]).map(s=>Object.assign({},s,{a:m(s.a), b:m(s.b), w:(s.w||[0,0]).slice()})), champ:H.po.champ!=null?m(H.po.champ):H.po.champ}):null;
+  C.year=H.year; C.px={g, cid:C.cid}; C.up=C.up||{}; C.hist=C.hist||[]; C.lineup=C.lineup||[]; C.tac=C.tac||{pace:'mid',focus:'bal',def:'man'}; C.plan=C.plan||['shoot','def','fit','rest','shoot','team','rest'];
+  if(C.hy==null) C.hy=H.year;
+  if(C.po&&C.po.champ===0&&C.champY!==H.year){ C.champY=H.year; C.titles=(C.titles||0)+1; C.fame=Math.min(100,(C.fame||0)+15); const prize=200000+BB_ARENA[C.lv||0].cap*10; W.bank+=prize; toast(`${C.name} VÔ ĐỊCH giải bóng rổ! Thưởng ${fmt(prize)}.`); C.hist.push({y:H.year+1, w:C.wins, l:C.losses, champ:C.name}); }
+  while(C.hy<H.year){ C.hy++; C.players.forEach(p=>{ p.age++; p.st={gp:0,pts:0,reb:0,ast:0}; }); C.wins=0; C.losses=0; }
+  return C; }
+function gpbResults(C){ const seen=Array.isArray(C.seen)?C.seen:(C.seen=[]); let out=''; const keep=W.bb; W.bb=C;
+  try{ C.games.forEach(g=>{ if(!g.played||(g.h!==0&&g.a!==0)) return; const key=g.day+':'+g.h+':'+g.a+':'+(g.po||0); if(seen.includes(key)) return; seen.push(key);
+      const home=g.h===0, me=home?g.hs:g.as, op=home?g.as:g.hs, won=me>op; if(!g.po){ if(won) C.wins++; else C.losses++; } C.fame=Math.max(0,Math.min(100,(C.fame||0)+(won?1.2:-.4)));
+      const gate=bbGate(home); W.bank+=gate; out+=` ${C.short} ${won?'thắng':'thua'} ${bbTeam(home?g.a:g.h).short} ${me}–${op}${gate?`, vé ${fmt(gate)}`:''}.`; }); }
+  finally{ W.bb=keep; } if(seen.length>120) seen.splice(0,seen.length-120); return out; }
+function gpbRefresh(){ const C=gpbView(); if(!C) return null; const out=gpbResults(C); if(out){ toast('Bóng rổ:'+out); save(); } return C; }
+/* ngày trôi: lương, tập luyện, chấn thương (không tự đá trận, không tự sang mùa) */
+function gpbDaily(B,d){ let out=''; const wage=B.players.reduce((a,p)=>a+(p.wage||0),0)+(B.coach?B.coach.wage||0:0); W.bank-=wage; out+=` CLB bóng rổ ${B.short}: lương ${fmt(wage)}.`;
+  if(B.up.shop){ const v=Math.round(200+B.fame*30); W.bank+=v; out+=` Bán áo đấu ${fmt(v)}.`; }
+  const pl=B.plan[(d-1)%7], gro=(B.up.gym?1.25:1)*(B.coach?1+(B.coach.dev||0)*.03:1);
+  B.players.forEach(p=>{ if(p.inj){ p.inj=Math.max(0,p.inj-(B.up.med?2:1)); return; } const room=(p.pot||0)-bbOvr(p); if(p.age<=31&&room>0&&pl!=='rest'){ const keys=pl==='shoot'?['thr','mid','ins']:pl==='def'?['def','reb']:pl==='fit'?['ath']:['pas','def','mid']; if(Math.random()<.18*gro*(room/12+.3)){ const k=rpick(keys); p.a[k]=bbClamp(p.a[k]+1); } }
+    p.form=Math.max(1,Math.min(10,(p.form||6)+(pl==='rest'?.4:pl==='team'?.2:-.05)+(Math.random()-.5)*.6)); });
+  if(B.lineup.some(id=>{ const p=B.players.find(x=>x.id===id); return !p||p.inj; })){ const keep=W.bb; W.bb=B; try{ bbAutoLine(); }finally{ W.bb=keep; } }
+  return out; }
+{ const _bd=bbDaily; bbDaily=function(d){ let out='';
+    if(GPXB.on&&W.bb&&W.bb.px){ const C=W.bb; out+=gpbDaily(C,d); if(GPXB.keep){ W.bb=GPXB.keep; try{ out+=_bd.apply(this,arguments); }finally{ W.bb=C; } } return out; }
+    out+=_bd.apply(this,arguments);
+    try{ const C=gpbRefresh(); if(C) out+=gpbDaily(C,d); }catch(e){ console.error(e); }
+    return out; }; }
+{ const _mg=bbMyGame; bbMyGame=function(d){ const B=W.bb; if(B&&B.px){ const H=SDV.w; if(!H) return null; const hd=dayOf(H.clock), seen=B.seen||[]; return B.games.find(g=>g.day===hd&&(g.h===0||g.a===0)&&!g.played&&!seen.includes(g.day+':'+g.h+':'+g.a+':'+(g.po||0)))||null; } return _mg.apply(this,arguments); }; }
+{ const _ble=bbLiveEnd; bbLiveEnd=function(){ const B=W.bb; if(!(B&&B.px)) return _ble.apply(this,arguments);
+    const S=BBV.S, g=BBV.g; BBV.live=false; clearTimeout(BBV.tm); if(g.played) return; bbSimAll(S); bbApply(g,S); const home=g.h===0, gate=bbGate(home); addBank(gate);
+    const me=home?0:1, won=S.sc[me]>S.sc[1-me], top=Object.values(S.box).filter(x=>x.t===0).sort((a,b)=>b.pts-a.pts)[0];
+    (B.seen=Array.isArray(B.seen)?B.seen:[]).push(g.day+':'+g.h+':'+g.a+':'+(g.po||0));
+    const gg=B.px.g, m=i=>i===gg?0:i===0?gg:i; gpN().send('prop',{t:'gbres', day:g.day, h:m(g.h), a:m(g.a), po:g.po||0, hs:S.sc[0], as:S.sc[1], qs:S.qs});
+    passTime(150); save(); const ov=document.getElementById('bbOv'); if(ov) ov.hidden=true;
+    BBRES={t:`${won?'Thắng':'Thua'} ${S.sc[me]}–${S.sc[1-me]} trước ${bbTeam(home?g.a:g.h).n}`, b:`Tỷ số các hiệp: ${S.qs.map(q=>`${q[me]}–${q[1-me]}`).join(', ')}. ${top?`Ghi điểm nhiều nhất: ${top.n} ${top.pts} điểm, ${top.reb} bóng bật, ${top.ast} kiến tạo.`:''}${gate?` Tiền vé ${fmt(gate)}.`:''} Kết quả đã gửi về giải của chủ phòng.`};
+    BBT='home'; if(W.mode!=='fc') setMode('fc'); renderFc(); window.scrollTo(0,0); }; }
+function gpbEnter(){ const T=gpbOwnTeam(); if(!T){ toast('Bạn chưa có đội trong giải bóng rổ của chủ phòng.'); return; }
+  if(!T.a.club){ GPXB.want=true; gpN().send('prop',{t:'gxopen'}); toast('Đang tải dữ liệu CLB từ chủ phòng…'); return; }
+  if(GPX.on) gpxExit(); const C=gpbRefresh(); if(!C) return; $('modal').hidden=true;
+  if(!GPXB.on) GPXB.keep=W.bb; GPXB.on=true; W.bb=C; BBT='home'; BBRES=null; BBPP=null; setMode('fc'); renderFc(); window.scrollTo(0,0); save(); }
+function gpbExit(){ if(!GPXB.on) return; GPXB.on=false; W.bb=GPXB.keep||null; GPXB.keep=null; gpbPush(true); save(); }
+function gpbStrip(C){ const o={}; Object.keys(C).forEach(k=>{ if(!GPXB_DROP.includes(k)) o[k]=C[k]; }); return o; }
+function gpbPush(force){ const N=gpN(); if(!N||!N.inRoom()||N.isHost()) return; const C=gpbLocal(); if(!C) return; let sig; try{ sig=JSON.stringify(gpbStrip(C)); }catch(e){ return; }
+  if(sig===GPXB.sig&&(!force||GPXB.sent===C.rev)) return; GPXB.sig=sig; C.rev=(C.rev||0)+1; GPXB.sent=C.rev; N.send('prop',{t:'gbsave', cid:C.cid, rev:C.rev, club:JSON.parse(sig)}); }
+setInterval(()=>{ try{ gpbPush(false); }catch(e){} },2500);
+{ const _sm3=setMode; setMode=function(m){ if(GPXB.on&&m!=='fc') gpbExit(); if(GPX.on&&GPXB.on&&m==='fc'){} return _sm3.apply(this,arguments); }; }
+{ const _rf2=renderFc; renderFc=function(){ if(GPXB.on&&W.bb&&W.bb.px&&W.mode==='fc'){ const B=W.bb, box=$('fcBox'); $('gTitle').textContent=B.short; const keep=['bbName','bbShort'].map(id=>$(id)&&$(id).value);
+      let h=bbArenaHTML(null,null); const hm=gpN().hostMember(); h+=`<p class="shop-note">CLB của bạn thi đấu giải bóng rổ trong thế giới của ${sdEsc(hm?hm.name:'chủ phòng')}. Mọi thay đổi được lưu vào save của chủ phòng. Kết quả trận và tiền vé về khi trận được đá.</p>`;
+      box.innerHTML=h; ['bbName','bbShort'].forEach((id,i)=>{ if(keep[i]!=null&&$(id)) $(id).value=keep[i]; });
+      { const H=SDV.w, tg=H&&bbMyGame(0), ok=!!(tg&&((H.clock%1440)>=BB_TIP-60)); let lb=box.querySelector('[data-bb="live"]');
+        if(!lb&&tg&&BBT==='home'){ const dv=document.createElement('div'); dv.className='ffown'; dv.innerHTML=`<h4>Hôm nay có trận (giờ chủ phòng): ${sdEsc(bbTeam(tg.h).n)} – ${sdEsc(bbTeam(tg.a).n)}${tg.po?' · playoff':''}</h4><p>Bóng lên lúc 20:00 theo giờ chủ phòng. Không xem thì trận tự mô phỏng.</p><button class="btn primary" data-bb="live"></button>`; box.prepend(dv); lb=dv.querySelector('button'); }
+        if(lb){ lb.disabled=!ok; lb.textContent=ok?'Vào sân xem trực tiếp':'Mở cửa từ 19:00 (giờ chủ phòng)'; } }
+      return; }
+    return _rf2.apply(this,arguments); }; }
+{ const _rl=renderLux; renderLux=function(){ if(GPXB.on&&W.mode==='fc'){ renderFc(); return; } return _rl.apply(this,arguments); }; }
+$('fcBox').addEventListener('click',e=>{ if(!(GPXB.on&&W.bb&&W.bb.px)) return; const t=e.target.closest('button,[data-bbt],[data-bbpp],[data-bbline],[data-bbtac],[data-bbplan],[data-bbsign],[data-bbrel],[data-bbhire],[data-bbcfire],[data-bbup],[data-bbticket],[data-bblogo],[data-bb]'); if(!t||t.dataset.logopick) return;
+  e.stopPropagation(); if(t.disabled) return;
+  if(t.dataset.bb==='live'){ const g=bbMyGame(0); if(g) bbLive(g); return; }
+  if(bbClick(t)){ renderFc(); } },true);
+function gpbApplyEx(ex){ if(!ex||ex.sp!=='bb'||!ex.p) return; const C=gpbLocal(); if(!C) return; const p=gmkBbFull(ex.p);
+  if(ex.t==='mklist'){ C.players=C.players.filter(x=>x.id!==p.id); C.lineup=(C.lineup||[]).filter(id=>id!==p.id); }
+  else if(!C.players.some(x=>x.id===p.id)){ p.num=Math.max(0,...C.players.map(q=>q.num||0))+1; C.players.push(p); }
+  if(GPXB.on&&W.bb===C&&W.mode==='fc') renderFc(); save(); gpbPush(false); }
+function gpbInit(){ const N=window.SDNet; if(!N||N._gpb) return; N._gpb=true;
+  N.on('world',d=>{ if(!d||d.t!=='snap'||N.isHost()) return; setTimeout(()=>{ try{
+    if(GPXB.want){ const T=gpbOwnTeam(); if(T&&T.a.club){ GPXB.want=false; gpbEnter(); return; } }
+    if(GPXB.on){ const C=gpbRefresh(); if(!C){ setMode('map'); return; } if(W.mode==='fc'&&(BBT==='home'||BBT==='sched')) renderFc(); }
+  }catch(e){ console.error(e); } },80); });
+  N.sub(ev=>{ if((ev==='left'||ev==='closed')&&GPXB.on){ setMode('map'); } }); }
+window.addEventListener('load',gpbInit);
 
 function gpxApplyEx(ex){ if(!ex||ex.sp!=='fc'||!ex.p) return; const C=gpxLocal(); if(!C) return; const p=ex.p;
   if(ex.t==='mklist'){ C.players=C.players.filter(x=>x.id!==p.id); C.xi=(C.xi||[]).filter(id=>id!==p.id); }
