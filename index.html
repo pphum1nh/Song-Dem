@@ -19803,13 +19803,16 @@ function gpStadiumHTML(){
     (r.i===0?'':r.owner?(r.owner.oid===me?`<button class="btn" data-gpfc="edit">Sửa</button><button class="btn" data-gpfc="sell">Bán</button>`:''):(have?'':`<button class="btn primary" data-gpfc="buy:${r.i}:${r.price}">${fmt(r.price)}</button>`))+`</div>`).join('')}</div>
     <button class="btn" data-gmkopen="1" style="width:100%;margin-top:8px">Chợ chuyển nhượng cầu thủ</button><p class="mnote">${have?'Bạn đã sở hữu một đội. Đội do máy điều khiển, bạn nhận thưởng sau mỗi trận.':'Chọn một đội để mua: bạn đặt tên, chọn màu áo và nhận thưởng mỗi trận đội thi đấu.'}</p>`;
 }
+const GPB={on:false};
 function gpGuestStadium(orig){
   const N=gpN(), H=SDV.w, host=N.hostMember(), nm=host?host.name:'chủ phòng';
   if(modalOpen()) return;
-  if(!H||!H.fc||!H.fc.ai){ modal({kick:'Sân vận động', title:`${nm} chưa có giải bóng đá`, body:'Chủ phòng cần lập câu lạc bộ bóng đá thì giải VĐQG mới mở cho khách.', yes:'OK', alt:W.fc?'Sân của tôi':null, altFn:()=>orig('stadium')}); return; }
-  modal({kick:`Giải VĐQG · thế giới của ${nm}`, title:'Bảng xếp hạng bóng đá', html:true, body:gpStadiumHTML(), yes:'Đóng', alt:W.fc?'Sân của tôi':null, altFn:()=>orig('stadium')});
+  if(!H||!H.fc||!H.fc.ai){ modal({kick:'Sân vận động', title:`${nm} chưa có giải bóng đá`, body:'Chủ phòng cần lập câu lạc bộ bóng đá thì giải VĐQG mới mở cho khách.', yes:'OK', alt:W.fc?'CLB riêng của tôi':null, altFn:()=>{ GPB.on=true; try{ orig('stadium'); }finally{ GPB.on=false; } }}); return; }
+  modal({kick:`Giải VĐQG · thế giới của ${nm}`, title:'Bảng xếp hạng bóng đá', html:true, body:gpStadiumHTML(), yes:'Đóng', alt:W.fc?'CLB riêng của tôi':null, altFn:()=>{ GPB.on=true; try{ orig('stadium'); }finally{ GPB.on=false; } }});
 }
-{ const _ep=enterPlace; enterPlace=function(k){ if(SDV.w&&k==='stadium'&&!hell()) return gpGuestStadium(_ep); return _ep.apply(this,arguments); }; }
+{ const _ep=enterPlace; enterPlace=function(k){ if(SDV.w&&k==='stadium'&&!hell()&&!GPB.on) return gpGuestStadium(_ep); return _ep.apply(this,arguments); }; }
+/* khách trong phòng: mọi lối vào sân vận động (lịch, điện thoại...) đều dẫn tới giải VĐQG của chủ phòng, không mua CLB riêng nữa */
+{ const _fe=fcEnter; fcEnter=function(){ if(SDV.w&&!hell()&&!GPB.on) return gpGuestStadium(()=>{ GPB.on=true; try{ _fe(); }finally{ GPB.on=false; } }); return _fe.apply(this,arguments); }; }
 function gpBbHTML(){
   const me=gpN().oid(), rows=sdvWith(()=>{ const B=W.bb; if(!B) return null; return bbTable().map((t,pos)=>{ const tm=bbTeam(t.i), a=t.i>0?B.ai[t.i-1]:null; return {pos:pos+1,n:tm.n,w:t.w,l:t.l,owner:a&&a.owner||null}; }); });
   if(!rows) return '<p class="mnote">Chủ phòng chưa có giải VĐQG bóng rổ.</p>';

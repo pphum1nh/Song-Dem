@@ -43,3 +43,6 @@ v1.9.29 · KỲ CHUYỂN NHƯỢNG + CHỢ BÓNG RỔ
 - Chợ chuyển nhượng chỉ mở trong kỳ chuyển nhượng (ngày 7-13 và 30-36 mỗi năm, giống lịch trong game). Ngoài kỳ, mua và đăng bán bị khoá, chợ báo ngày mở lại; vẫn rút cầu thủ đang đăng về đội được.
 - Chợ tự do chỉ bơm cầu thủ mới khi kỳ chuyển nhượng mở.
 - Thêm chợ bóng rổ: tab Bóng rổ trong chợ, nút trong màn bóng rổ của khách. Chủ phòng và khách có đội bóng rổ mua bán cầu thủ; tối đa 3 ngoại binh, đội 10-15 người (khách 8-15).
+
+v1.9.30 · KHÁCH CHỈ CHƠI TRONG GIẢI CỦA CHỦ PHÒNG
+- Khách trong phòng online: mọi lối vào sân vận động (bản đồ, lịch, điện thoại) đều mở giải VĐQG của chủ phòng để mua/sửa đội, không còn đường mua CLB riêng 500.000 tách khỏi giải. CLB riêng cũ (nếu có) vẫn truy cập được bằng nút "CLB riêng của tôi".
