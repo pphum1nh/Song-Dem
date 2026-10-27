@@ -1,5 +1,5 @@
 // Sòng Đêm: cache the whole game on first visit so it runs with no internet.
-const CACHE = 'song-dem-v1.9.27-full';
+const CACHE = 'song-dem-v1.9.28-full';
 const FILES = ['./', './index.html', './manifest.webmanifest', './cars.js', './assets.js', './carx.js', './peerjs.min.js', './net.js', './coop.js', './icon-180.png', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));

@@ -31,3 +31,10 @@ v1.9.27 · KẾT NỐI ONLINE
 - Khách vào phòng: thử nối trực tiếp 10 giây, không được thì tự thử lại ép đi qua TURN (tối đa 18 giây).
 - Thông báo lỗi cho biết đã nối được máy chủ trung gian PeerJS hay chưa và trạng thái ICE.
 - Khung "Kết nối khó? (TURN riêng)" trong màn hình chơi cùng: nhập turn:host:port|tên|mật khẩu.
+
+v1.9.28 · THỊ TRƯỜNG CHUYỂN NHƯỢNG CHUNG (bóng đá online)
+- Chợ cầu thủ chung cho cả phòng: mở từ tab Phòng ("Chợ chuyển nhượng cầu thủ") hoặc trong sân vận động của khách. Chủ phòng và khách có đội đều đăng bán, mua cầu thủ của nhau.
+- Chợ tự động bơm thêm 8 cầu thủ "Chợ tự do" mỗi 3 ngày (giá cao hơn giá trị 15%, hết hạn sau 6 ngày).
+- Đội bóng khách mua giờ có đội hình thật (16 cầu thủ); sức mạnh đội tính theo 11 cầu thủ mạnh nhất, cầu thủ lên/xuống theo mùa.
+- Chủ phòng quyết định mọi giao dịch: kiểm tra giá, ví, số cầu thủ (tối đa 26, tối thiểu 14/15), mỗi người đăng tối đa 6. Khách trả tiền lỗi thì được hoàn; tiền bán về ví người bán (khách nhận qua sổ chờ chi trả).
+- Bán lại đội thì cầu thủ đang đăng bán của đội đó bị gỡ.

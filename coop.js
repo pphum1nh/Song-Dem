@@ -173,6 +173,7 @@ function renderRoomTab(){
     <button class="cp-act wide" data-act="city"><b>Dạo thành phố${H&&H.id!==meId?` của ${esc(H.name)}`:' của bạn'}</b><span>${H&&H.id!==meId?'Bạn đang ghé thăm: bản đồ hiện nhà cửa, cơ ngơi của chủ phòng và vị trí mọi người.':'Bạn bè trong phòng sẽ thấy thành phố của bạn và chỗ bạn đang đứng.'}</span></button>
     <button class="cp-act" data-act="bj"><b>Blackjack chung bàn</b><span>Cùng đấu nhà cái, thắng cả bàn có thưởng.</span></button>
     <button class="cp-act" data-act="f1"><b>Đua F1 giao hữu</b><span>Chọn cùng đội hoặc khác đội, mỗi đội 2 xe.</span></button>
+    <button class="cp-act" data-act="mk"><b>Chợ chuyển nhượng cầu thủ</b><span>Mua bán cầu thủ chung giữa các đội trong giải bóng đá của chủ phòng.</span></button>
   </div>
   <button class="cp-leave" data-act="leave">Rời phòng</button>`;
   el.innerHTML=h;
@@ -426,6 +427,7 @@ ov.addEventListener('click',e=>{
   if(b.dataset.act){ const a=b.dataset.act;
     if(a==='city'){ close(); SD.goCity(); return; }
     if(a==='bj'){ N.invite('bj','Ngồi vào bàn Blackjack chung không?'); tab='bj'; showView(); return; }
+    if(a==='mk'){ close(); SD.market&&SD.market(); return; }
     if(a==='f1'){ N.invite('f1','Vào Gara → Chạy xe → Giao hữu, đua F1 cùng nhé!'); close(); SD.goF1Team(); return; }
     if(a==='leave'){ const go=()=>{ bjLost(); N.leave(); showView(); renderChip(); };
       SD.modal({kick:'Chơi cùng', title:'Rời phòng?', body:N.isHost()?'Bạn là chủ thế giới, rời đi thì phòng đóng với mọi người.':'Bạn sẽ quay về thế giới của mình.', yes:'Rời phòng', yesFn:go, no:'Ở lại'}); return; }
