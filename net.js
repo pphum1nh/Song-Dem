@@ -23,6 +23,13 @@ const clip=(s,n)=>String(s==null?'':s).slice(0,n);
 
 let peer=null, host=false, me=null, code=null, hostConn=null, conns={}, seen={}, hb=null;
 let members=[];          // [{id,name,host,loc:{m,p,t}}]
+/* ID người chơi cố định (v1.9.24): pid là bí mật, chỉ chủ phòng giữ; oid là băm công khai dùng làm khoá sở hữu */
+const pids={};
+function myPid(){ let p=ls.get('sd-coop-pid'); if(!p||p.length<16){ p=''; for(let i=0;i<4;i++) p+=Math.random().toString(36).slice(2,8); p+=Date.now().toString(36); ls.set('sd-coop-pid',p); } return p; }
+function hash53(str,seed){ let h1=0xdeadbeef^(seed||0), h2=0x41c6ce57^(seed||0); for(let i=0;i<str.length;i++){ const ch=str.charCodeAt(i); h1=Math.imul(h1^ch,2654435761); h2=Math.imul(h2^ch,1597334677); }
+  h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909); h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);
+  return (4294967296*(2097151&h2)+(h1>>>0)).toString(36); }
+const toOid=pid=>pid?'o'+hash53('sd|'+pid,7)+hash53(pid,13):'';
 let chat=[];             // [{n,m}|{sys,m}]
 let unread=0, open=false;
 const handlers={}, subs=[];
@@ -36,6 +43,9 @@ const N={
   inRoom:()=>!!(peer&&me&&code&&(host||(hostConn&&hostConn.open))),
   isHost:()=>host, me:()=>me, code:()=>code, members:()=>members.slice(), chat:()=>chat.slice(),
   member:id=>members.find(m=>m.id===id), hostMember:()=>members.find(m=>m.host),
+  pid:()=>myPid(), oid:()=>toOid(myPid()),
+  /* chủ phòng: oid của một thành viên theo peer id (rỗng nếu không rõ) */
+  oidOf:id=>{ const m=members.find(x=>x.id===id); if(m&&m.host) return toOid(myPid()); return toOid(pids[id]||''); },
   name:()=>ls.get('sd-coop-name')||'', setName:n=>ls.set('sd-coop-name',clip(n,16)),
   unread:()=>unread, setOpen:o=>{ open=!!o; if(open){ unread=0; emit('chat'); } },
   on(ch,fn){ (handlers[ch]=handlers[ch]||[]).push(fn); },
@@ -64,6 +74,7 @@ N.on('room',(d,from)=>{
     const mm=members.find(m=>m.id===from);
     switch(d.t){
       case 'hello':{
+        if(d.pid) pids[from]=clip(d.pid,64);
         if(mm){ mm.name=clip(d.name||mm.name,16); hostRoomSync(); return; }
         if(members.length>=MAX){ N.to(from,'room',{t:'full'}); setTimeout(()=>{ try{ conns[from]&&conns[from].close(); }catch(e){} },400); return; }
         const nm={id:from, name:clip(d.name||'Khách',16)||'Khách', host:false, loc:d.loc||{m:'map'}};
@@ -125,7 +136,7 @@ function join(raw,name){
     const p=peer=new window.Peer(undefined, peerOpts());
     p.on('open',id=>{ if(p!==peer) return; me=id; host=false;
       const c=hostConn=p.connect(PREFIX+c0,{reliable:true, metadata:{v:VER}});
-      c.on('open',()=>{ seen.host=Date.now(); rawSend(c,{ch:'room',t:'hello',name:clip(name||'Khách',16),v:VER}); });
+      c.on('open',()=>{ seen.host=Date.now(); rawSend(c,{ch:'room',t:'hello',name:clip(name||'Khách',16),pid:myPid(),v:VER}); });
       c.on('data',d=>{ seen.host=Date.now(); if(!d||typeof d!=='object'||typeof d.ch!=='string') return;
         if(!done&&d.ch==='room'&&d.t==='sync'){ done=true; clearTimeout(tm); startHb(); deliver('room',d,'host'); emit('joined'); res(c0); return; }
         deliver(d.ch,d,'host'); });
@@ -155,7 +166,7 @@ function leave(silent){
   if(host) for(const id in conns){ try{ conns[id].close(); }catch(e){} }
   try{ hostConn&&hostConn.close(); }catch(e){}
   try{ peer&&peer.destroy(); }catch(e){}
-  peer=null; hostConn=null; conns={}; seen={}; host=false; me=null; code=null; members=[]; chat=[]; unread=0;
+  peer=null; hostConn=null; conns={}; seen={}; for(const k in pids) delete pids[k]; host=false; me=null; code=null; members=[]; chat=[]; unread=0;
   if(wasIn&&!silent) emit('closed','Bạn đã rời phòng.');
   if(wasIn) emit('left');
 }

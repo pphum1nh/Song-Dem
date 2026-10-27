@@ -1,0 +1,27 @@
+SÒNG ĐÊM v1.9.24: BẢN GHI THAY ĐỔI
+
+A. SỬA LỖI THEO BÁO CÁO v1.9.23
+1. Định danh người chơi bằng ID cố định (net.js): mỗi máy có ID bí mật lưu local, chủ phòng chỉ giữ bản băm công khai (oid). Tài sản (W.gprop), tay đua F1 và chip giữ hộ khoá theo oid, không còn theo tên vào phòng. Dữ liệu cũ theo tên được gắn vào oid của người đầu tiên vào phòng với tên đó (một lần).
+2. Giao dịch có mã (tx): khách giữ bản ghi chờ W.gpend; chủ phòng tự tính giá, không tin số tiền khách gửi; xử lý trùng trả đúng kết quả cũ (W.gtx); hoàn tiền chỉ theo bản ghi chờ của chính khách. Khách nối lại phòng thì tự gửi lại giao dịch đang chờ.
+3. Poker: nhánh "chủ phòng chưa ngồi bàn" và "bàn đủ người" giờ hoàn tiền; mức mua chip được kiểm tra.
+4. Chi trả của chủ phòng (lãi cửa hàng, lương F1, chip poker, bán lại tài sản, thưởng đội) đi qua sổ chờ W.gled, gửi lại tới khi khách báo đã nhận.
+5. Cái chết lưu thành trạng thái chờ (W.pendDeath): tải lại trước khi bấm "Xuống địa ngục" vẫn hiện lại hậu quả.
+6. F1: chặng bỏ lỡ mô phỏng đủ 20 xe, AI lái thay ghế người chơi (người chơi không nhận điểm).
+7. Mạng xã hội: không hiện bài đăng của NPC chưa tới giờ; tin chuyên án được bổ sung vào bảng tin ngay khi có tin.
+8. Nạp save / chơi mới khi đang ở trong phòng: tự rời phòng, xoá trạng thái phiên cũ.
+
+B. TÍNH NĂNG MỚI
+1. 6 lô đất cao cấp mới (Lô 7 đến Lô 12, $60.000 đến $165.000) trên 3 ô công viên cạnh TTTM (tab TTTM · Sân bay), vẫn giữ đài phun nước ở góc.
+2. Online, bóng rổ: khách mua đất kèm sân bóng rổ, rồi lập đội. Đội thay một đội máy trong giải VĐQG bóng rổ của chủ phòng (tối đa 3 đội khách), lưu trong save chủ phòng. Khách xem bảng xếp hạng, sửa tên và màu đội. Đội thi đấu cùng giải, khách nhận thưởng mỗi trận.
+3. Online, bóng đá: khách chạm sân vận động trên bản đồ của chủ phòng để xem bảng xếp hạng VĐQG, mua một đội máy, sửa tên và màu áo, bán lại (60%). Bản đồ vẫn hiển thị thế giới của chủ phòng.
+
+C. CHƯA LÀM (nêu trong báo cáo, cần thiết kế riêng)
+Thống nhất công thức quán online/offline, cổ tức sau IPO, tương tác sâu trong thế giới bạn, siết nợ cho tài sản mới, quy tắc ví âm, mạng xã hội phản ánh NPC sâu hơn.
+
+v1.9.25 · THỜI GIAN ONLINE
+- Giờ trên bản đồ online chạy theo chủ phòng; chủ phòng gửi giờ cho khách mỗi khi đồng hồ đổi, khách thấy "giờ chủ phòng" trên thanh đồng hồ khi ở bản đồ, ngày/đêm đổi theo chủ phòng.
+- Thời gian riêng của khách (làm việc, đua, chơi bài...) chỉ tính trong save của khách, không đổi giờ bản đồ.
+- Ngủ 7 tiếng khi phòng có từ 2 người: cả phòng phải đồng ý (35 giây). Đủ phiếu thì mọi máy cùng ngủ; có người từ chối, hết giờ hoặc rời phòng thì huỷ. Phòng chỉ có một người thì ngủ như cũ.
+
+v1.9.26 · SỬA LỖI BÁN DOANH NGHIỆP
+- Bán doanh nghiệp giờ hoàn 80% vốn đã bỏ (đất + phí mở cửa hàng + tiền nâng cấp + quỹ), không còn tính theo lãi và uy tín. Ví dụ: cửa hàng ở Phố trên mở 2.000 (đất 1.000), nâng cấp thêm 800 thì bán nhận 80% của 3.800.

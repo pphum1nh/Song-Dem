@@ -2703,10 +2703,12 @@ function loseLife(){
     yes:'Cược tiếp', yesFn:reEnter, no:'Về sảnh âm phủ', noFn:goHub });
 }
 function restartAll(msg){
+  try{ if(window.SDNet&&SDNet.inRoom()) SDNet.leave(); }catch(e){}
   W=freshW(W.solBest); solHist=[]; H.odds=null;
   resetRounds(); goMap(); toast(msg||`Ví mới: ${fmt(START)}`);
 }
 function descend(){
+  W.pendDeath=null;
   { const d=dayOf(W.clock); if(!hell()&&W.pray&&W.pray.d===d&&W.pray.n>0&&W.savedDay!==d){ godSaves(); return; } }
   W.ill={}; W.strain=0;
   if(W.pkStack>0){ W.bank+=W.pkStack; W.pkStack=0; }
@@ -8002,7 +8004,7 @@ let trainBtn=s=>{ const d=dayOf(W.clock); return s.skill>=10?'<span class="done"
 /* =========================================================
    LUXURY RESIDENTIAL DISTRICT
    ========================================================= */
-const LUX_LOTS=[[6,20],[124,20],[242,20],[6,362],[124,362],[242,362]].map(([x,y],i)=>({id:'x'+(i+1), n:`Lô ${i+1}`, x, y, w:112, h:268, price:5000*(i+1)}));
+const LUX_LOTS=[[6,20],[124,20],[242,20],[6,362],[124,362],[242,362]].map(([x,y],i)=>({id:'x'+(i+1), n:`Lô ${i+1}`, x, y, w:112, h:268, price:5000*(i+1)})).concat([60000,75000,90000,110000,135000,165000].map((price,k)=>({id:'x'+(k+7), n:`Lô ${k+7}`, x:6, y:20, w:112, h:268, price, prem:true})));
 const LUX_HOUSE=25000, LUX_APT=60000, APT_MAX=8;
 const HROOMS={living:{n:'Phòng khách',cost:0,base:70,f:[3000,8000,20000]}, bed:{n:'Phòng ngủ',cost:0,base:60,f:[2500,7000,18000]}, kitchen:{n:'Bếp & phòng ăn',cost:15000,base:70,f:[4000,10000,22000]},
   master:{n:'Phòng ngủ master',cost:25000,base:110,f:[6000,15000,35000]}, gym:{n:'Phòng gym',cost:30000,base:90,f:[5000,12000,28000]}, theater:{n:'Phòng chiếu phim',cost:40000,base:130,f:[8000,18000,40000]},
@@ -8046,7 +8048,7 @@ function renderMap5(){
   const h=hourNow(), night=h>=19||h<6; 
   LUX_LOTS.forEach((L,i)=>{ const O=luxOwn(L.id), g=$('plLX'+(i+1)); g.querySelector('.lotart').innerHTML=luxLotArt(L,O);
     mapLabel('plLX'+(i+1), !O?`${L.n} · ${fmt(L.price)}`:!O.b?`${L.n} · của bạn`:O.b.type==='cult'?`Thánh đường ${L.n}`:O.b.type==='house'?`Biệt thự ${L.n}`:O.b.type==='studio'?`Studio game ${L.n}`:O.b.type==='court'?`${O.b.sport==='bball'?'Bóng rổ':'Pickleball'} ${L.n}`:`Chung cư ${L.n}`, false); });
-  const own=LUX_LOTS.filter(L=>luxOwn(L.id)).length; $('map5Stat').textContent=`Ví ${fmt(W.bank)} · sở hữu ${own}/6 lô đất`+(night?' · đèn đã lên':'');
+  const own=LUX_LOTS.filter(L=>luxOwn(L.id)).length; $('map5Stat').textContent=`Ví ${fmt(W.bank)} · sở hữu ${own}/${LUX_LOTS.length} lô đất`+(night?' · đèn đã lên':'');
 }
 /* ---------- isometric interiors ---------- */
 function luxRoomSVG(kind,f,B,dc){
@@ -10204,7 +10206,7 @@ function stroke(){
     }});
 }
 function deathBy(text){
-  save();
+  W.pendDeath=text; save();
   modal({kick:'Bạn đã ra đi', title:'Hồn lìa khỏi xác', body:text+' Khi mở mắt ra, bạn đứng trước cổng âm phủ. Diêm Vương cho bạn 3 mạng để cược: thắng một ván là được về dương gian.', yes:'Xuống địa ngục', yesFn:descend});
 }
 function renderHosp(){ renderHospBase(); $('hospCareer').innerHTML=docCareerHTML(); }
@@ -11453,6 +11455,7 @@ function tryLoad(txt){
   modal({kick:'Tải game', good:true, title:'Thay tiến trình hiện tại?', body:`File lưu: ${saveSummary(w)}. Tiến trình đang chơi (${saveSummary(W)}) sẽ bị thay thế.`, yes:'Nạp file lưu', no:'Thôi', yesFn:()=>applySave(w), noFn:()=>openPhone('set')});
 }
 function applySave(w){
+  try{ if(window.SDNet&&SDNet.inRoom()) SDNet.leave(); }catch(e){}
   try{ if(typeof GF!=='undefined') GF.on=false; if(typeof RC!=='undefined') RC.on=false; }catch(e){}
   $('phoneOv').hidden=true; SETMSG='';
   W=freshW(w.solBest||W.solBest); solHist=[]; H.odds=null; resetRounds();
@@ -13632,14 +13635,16 @@ $('npcBox').addEventListener('click',e=>{ const b=e.target.closest('[data-v6tuan
 
 /* ---------- 7. Bán / phá dỡ công trình trên lô đất (hoàn 80%) ---------- */
 const REFUND=.8;
+/* v1.9.26: giá bán doanh nghiệp = vốn đã bỏ (đất + mở cửa hàng + nâng cấp + quỹ), không tính theo lãi/uy tín nữa */
+const bizSellVal=(B,L)=>(L.land||0)+(L.open||0)+upVal(B)+bFund(B);
 function luxBuildVal(id){ const L=luxLot(id), O=(W.lux||{})[id]; if(!L||!O||!O.b) return 0; return Math.max(0,luxValue(id)-L.price); }
 function propHTML(kind,id){
   if(kind==='lux'){ const O=luxOwn(id), L=luxLot(id); if(!O) return ''; const bv=luxBuildVal(id), tot=luxValue(id);
     if(O.b&&O.b.type==='cult'&&inCult()) return '';
     return `<h3 class="sh">Bán · phá dỡ</h3><div class="illrow v6prop"><p>${O.b?`Giá trị công trình ~${fmt(bv)}, đất ${fmt(L.price)}.`:`Lô đất trống, giá gốc ${fmt(L.price)}.`} Bán hoặc phá dỡ đều được hoàn 80% giá trị.</p><div class="homeacts">${O.b?`<button class="btn" data-v6prop="lux:raze">Phá dỡ công trình<br><small>nhận ${fmt(Math.round(bv*REFUND))}, giữ đất</small></button>`:''}<button class="btn locked" data-v6prop="lux:sell">Bán cả lô<br><small>nhận ${fmt(Math.round(tot*REFUND))}</small></button></div></div>`; }
   const B=bizAt(id), L=LOTS[id]; if(!B) return ''; if(B.ipo) return `<h3 class="sh">Bán · phá dỡ</h3><div class="illrow"><p>${bizName(B)} đã lên sàn: muốn bán thì bán cổ phiếu ${B.ipo.t} trong app Chứng khoán. Bán hết thì công ty sang chủ khác.</p></div>`;
-  const bv=(L.open||0)+upVal(B)+bFund(B), sv=bizValue(B);
-  return `<h3 class="sh">Bán · phá dỡ</h3><div class="illrow v6prop"><p>Bán doanh nghiệp: người mua trả 80% định giá ${fmt(sv)} (gồm mặt bằng, lãi, uy tín), bạn mất cả lô. Phá dỡ: đóng cửa, cho nghỉ hết nhân viên, hoàn 80% chi phí mở và nâng cấp cùng quỹ (${fmt(bv)}), giữ lại đất trống.</p><div class="homeacts"><button class="btn" data-v6prop="biz:raze">Phá dỡ<br><small>nhận ${fmt(Math.round(bv*REFUND))}</small></button><button class="btn locked" data-v6prop="biz:sell">Bán doanh nghiệp<br><small>nhận ${fmt(Math.round(sv*REFUND))}</small></button></div></div>`;
+  const bv=(L.open||0)+upVal(B)+bFund(B), sv=bizSellVal(B,L);
+  return `<h3 class="sh">Bán · phá dỡ</h3><div class="illrow v6prop"><p>Bán doanh nghiệp: người mua trả 80% vốn bạn đã bỏ ${fmt(sv)} (đất, mở cửa hàng, nâng cấp, quỹ), bạn mất cả lô. Phá dỡ: đóng cửa, cho nghỉ hết nhân viên, hoàn 80% chi phí mở và nâng cấp cùng quỹ (${fmt(bv)}), giữ lại đất trống.</p><div class="homeacts"><button class="btn" data-v6prop="biz:raze">Phá dỡ<br><small>nhận ${fmt(Math.round(bv*REFUND))}</small></button><button class="btn locked" data-v6prop="biz:sell">Bán doanh nghiệp<br><small>nhận ${fmt(Math.round(sv*REFUND))}</small></button></div></div>`;
 }
 const _renderLuxV6=renderLux;
 renderLux=function(){ _renderLuxV6(); if(W.mode==='lux'&&!(typeof BBV!=='undefined'&&BBV.live)) $('luxBox').insertAdjacentHTML('beforeend',propHTML('lux',CLUX)); };
@@ -13650,7 +13655,7 @@ document.addEventListener('click',e=>{ const b=e.target.closest('[data-v6prop]')
     if(act==='raze') modal({kick:'Phá dỡ', title:`Phá dỡ ${nm} ở ${L.n}?`, body:`Công trình bị san phẳng, nhân viên nghỉ hết. Bạn nhận ${fmt(bv)} (80% giá trị) và giữ lô đất trống để xây cái khác.${O.b&&O.b.arena?' Câu lạc bộ bóng rổ sẽ giải thể.':''}`, yes:'Phá dỡ', no:'Thôi', yesFn:()=>{ if(O.b&&O.b.arena) W.bb=null; O.b=null; addBank(bv); LXRES={t:'Đã phá dỡ', b:`Nhận ${fmt(bv)}. Lô đất trống trở lại.`}; save(); renderLux(); }});
     else modal({kick:'Bán bất động sản', title:`Bán ${L.n}${O.b?' cùng '+nm:''}?`, body:`Người mua trả ${fmt(tv)} (80% giá trị đất và công trình). Bạn mất quyền sở hữu lô này.`, yes:'Bán', no:'Thôi', yesFn:()=>{ if(O.b&&O.b.arena) W.bb=null; delete W.lux[id]; addBank(tv); LXRES={t:`Đã bán ${L.n}`, b:`Nhận ${fmt(tv)}.`}; save(); renderLux(); }});
     return; }
-  const B=bizAt(CLOT), L=LOTS[CLOT]; if(!B||B.ipo) return; const bv=Math.round(((L.open||0)+upVal(B)+bFund(B))*REFUND), sv=Math.round(bizValue(B)*REFUND);
+  const B=bizAt(CLOT), L=LOTS[CLOT]; if(!B||B.ipo) return; const bv=Math.round(((L.open||0)+upVal(B)+bFund(B))*REFUND), sv=Math.round(bizSellVal(B,L)*REFUND);
   const drop=()=>{ W.bizs=W.bizs.filter(x=>x!==B); if(CB===B) CB=null; if(JB>=W.bizs.length) JB=0; };
   if(act==='raze') modal({kick:'Phá dỡ', title:`Đóng cửa và phá dỡ ${bizName(B)}?`, body:`Nhân viên nghỉ hết, quầy kệ bị dỡ bỏ. Nhận ${fmt(bv)}, giữ lại mặt bằng ${L.n.toLowerCase()} để mở kinh doanh khác.`, yes:'Phá dỡ', no:'Thôi', yesFn:()=>{ drop(); W.lots[CLOT]=true; addBank(bv); save(); renderBiz(); toast(`Đã phá dỡ, nhận ${fmt(bv)}.`); }});
   else modal({kick:'Bán doanh nghiệp', title:`Bán ${bizName(B)}?`, body:`Một nhà đầu tư trả ${fmt(sv)} cho cả doanh nghiệp và mặt bằng. Bạn mất lô đất này.`, yes:'Bán', no:'Thôi', yesFn:()=>{ drop(); delete W.lots[CLOT]; addBank(sv); save(); toast(`Đã bán, nhận ${fmt(sv)}.`); goMap3(); }});
@@ -14342,6 +14347,7 @@ const SDM=(()=>{
     if(hasProgress()) try{ backupNow(p.kind==='new'?'Trước khi chơi mới':'Trước khi tải game'); }catch(e){}
     try{ if(typeof GF!=='undefined') GF.on=false; if(typeof RC!=='undefined') RC.on=false; }catch(e){}
     try{ $('phoneOv').hidden=true; $('modal').hidden=true; }catch(e){}
+    try{ if(window.SDNet&&SDNet.inRoom()) SDNet.leave(); }catch(e){}
     SETMSG='';
     enter(p.kind,()=>{
       W=freshW(p.w.solBest||W.solBest); solHist=[]; H.odds=null; resetRounds();
@@ -14904,8 +14910,8 @@ const IART={
 };
 
 /* ---- dynamic lots ---- */
-function isoLandArt(fp,state,price,hint){ const {i0,j0,i1,j1}=fp; let s=idirt(i0,j0,i1,j1); const ci=(i0+i1)/2, cj=(j0+j1)/2;
-  if(state==='own') s+=iboard(ci,cj,'ĐẤT CỦA BẠN',hint||'Chạm để xây','#2c8c5a')+icones(i0+.5,j1-1.8);
+function isoLandArt(fp,state,price,hint,title){ const {i0,j0,i1,j1}=fp; let s=idirt(i0,j0,i1,j1); const ci=(i0+i1)/2, cj=(j0+j1)/2;
+  if(state==='own') s+=iboard(ci,cj,title||'ĐẤT CỦA BẠN',hint||'Chạm để xây','#2c8c5a')+icones(i0+.5,j1-1.8);
   else s=s+ipine(i0+.4,j0+.4,.8)+iboard(ci,cj,'ĐẤT BÁN',price,'#d6283a');
   return {s,h:60,flat:1}; }
 function isoBizArt(fp,lot){ const B=bizAt(lot)||(typeof soldB==='function'?soldB(lot):null), L=LOTS[lot];
@@ -14933,7 +14939,9 @@ function cultTemple(fp){ const {i0,j0,i1,j1}=fp; const ic=(i0+i1)/2, jc=(j0+j1)/
   [[i0+.3,j1-.3],[i1-.25,j1-.3]].forEach(([a,b])=>{ s+=ibox(a-.15,b-.15,a+.15,b+.15,4,30,'#1e1828','#2a2236',{noao:1});
     const [x,y,k]=isoP(a,b,30); s+=`<path d="M${isf(x)} ${isf(y-14*k)}Q${isf(x+5*k)} ${isf(y-6*k)} ${isf(x+2.6*k)} ${isf(y)}H${isf(x-2.6*k)}Q${isf(x-5*k)} ${isf(y-6*k)} ${isf(x)} ${isf(y-14*k)}Z" fill="${glow}"/><path d="M${isf(x)} ${isf(y-8*k)}Q${isf(x+2*k)} ${isf(y-3*k)} ${isf(x)} ${isf(y)}Q${isf(x-2*k)} ${isf(y-3*k)} ${isf(x)} ${isf(y-8*k)}Z" fill="#fff3ff" opacity=".8"/>`; });
   return {s,h:96}; }
-function isoLuxArt(fp,k){ const L=LUX_LOTS[k], O=luxOwn(L.id);
+function isoLuxArt(fp,k){ const L=LUX_LOTS[k]; let O=luxOwn(L.id), GP=null;
+  if(!O||!O.b){ GP=(W.gprop||{})['lux:'+L.id]||null; if(GP&&GP.court) O={b:{type:'court',sport:GP.court}}; }
+  if(GP&&!GP.court&&(!O||!O.b)) return isoLandArt(fp,'own',null,'Chủ: '+String(GP.owner||'').slice(0,10),'ĐẤT ĐÃ BÁN');
   if(!O||!O.b) return isoLandArt(fp,O?'own':'sale',fmt(L.price));
   const B=O.b, {i0,j0,i1,j1}=fp;
   if(B.type==='house') return IART.villa(fp);
@@ -15086,12 +15094,12 @@ function isoSort(objs){ const n=objs.length;
 function isoSig(){ const n=hourNow(); const night=n>=19||n<6;
   const lux=LUX_LOTS.map(L=>{ const O=luxOwn(L.id); return O?(O.b?O.b.type+(O.b.floors||'')+(O.b.sport||''):'o'):'-'; }).join(',');
   const lots=['p2','k1','k2','k3'].map(l=>{ const B=bizAt(l)||(typeof soldB==='function'?soldB(l):null); return (W.lots&&W.lots[l]?'1':'0')+(B?B.type+(B.pending?'!':''):''); }).join(',');
-  return [night?1:0,lux,lots,W.garage?1:0,W.fc?W.fc.stad+((W.fc.kit&&W.fc.kit.c1)||''):'-',(W.yachts||[]).length].join('|'); }
+  return [night?1:0,lux,lots,W.garage?1:0,W.fc?W.fc.stad+((W.fc.kit&&W.fc.kit.c1)||''):'-',(W.yachts||[]).length,Object.keys(W.gprop||{}).sort().map(k=>k+':'+((W.gprop[k]||{}).court||'')).join(',')].join('|'); }
 function isoPlaceArt(id,kind,fp,o){
   if(kind==='lot'){ if(W.garage){ const r=kShop(fp,22,'#d9dde3','#55595f','GARAGE'); r.s+=ifaceR(fp.j0+.3,fp.j1-.3,fp.i1+.02,1,15,IC('#8a919c')); return r; } return Object.assign(isoLandArt(fp,'sale','Xây gara'),{lbl:null}); }
   if(kind==='biz') return isoBizArt(fp,'p2');
   if(/^k[123]$/.test(kind)) return isoBizArt(fp,kind);
-  if(/^lx\d$/.test(kind)) return isoLuxArt(fp,+kind[2]);
+  if(/^lx\d+$/.test(kind)) return isoLuxArt(fp,+kind.slice(2));
   if(kind==='house') return IART.house(fp,o||{});
   return IART[kind](fp,o||{}); }
 function isoLabelPos(id){ const P=ISO_PL[id], {i0,j0,i1,j1}=P.fp, [x,y]=isoP((i0+i1)/2,(j0+j1)/2,P.h); return [x,y-6+(P.ly||0)]; }
@@ -15162,7 +15170,7 @@ renderMap3=function(){ _renderMap3Iso(); ['plK1','plK2','plK3'].forEach(id=>{ is
 renderMap5=function(){ const h=hourNow(), night=h>=19||h<6;
   LUX_LOTS.forEach((L,i)=>{ const O=luxOwn(L.id);
     mapLabel('plLX'+(i+1), !O?`${L.n} · ${fmt(L.price)}`:!O.b?`${L.n} · của bạn`:O.b.type==='cult'?`Thánh đường ${L.n}`:O.b.type==='house'?`Biệt thự ${L.n}`:O.b.type==='studio'?`Studio game ${L.n}`:O.b.type==='court'?`${O.b.sport==='bball'?'Bóng rổ':'Pickleball'} ${L.n}`:`Chung cư ${L.n}`, false); });
-  const own=LUX_LOTS.filter(L=>luxOwn(L.id)).length; if($('map5Stat')) $('map5Stat').textContent=`Ví ${fmt(W.bank)} · sở hữu ${own}/6 lô đất`+(night?' · đèn đã lên':''); };
+  const own=LUX_LOTS.filter(L=>luxOwn(L.id)).length; if($('map5Stat')) $('map5Stat').textContent=`Ví ${fmt(W.bank)} · sở hữu ${own}/${LUX_LOTS.length} lô đất`+(night?' · đèn đã lên':''); };
 renderMap0=function(){ try{ _renderMap0Iso(); }catch(e){ console.error(e); } };
 renderMap4=function(){ try{ _renderMap4Iso(); }catch(e){ console.error(e); } };
 const _renderMapIso=renderMap;
@@ -15796,6 +15804,9 @@ ISO_BLOCKS['8,4']={g:'plaza',pl:[['plAir','one','airport']]};
 ISO_BLOCKS['7,5']={g:'grass',deco:'runway'};
 ISO_REG.east=['plMall','plAir']; ISO_REGN.east='TTTM · Sân bay'; ISO_FOCUS.east=['plMall','plAir'];
 ISO_LBL.plMall=['Trung tâm thương mại · sắp mở','shop']; ISO_LBL.plAir=['Sân bay · sắp mở','plane'];
+/* v1.9.24: 3 ô công viên phía tây TTTM thành khu đất cao cấp (6 lô, 2 lô mỗi ô, giữ đài phun nước ở góc) */
+[['4,4',[['plLX7','L','lx6'],['plLX8','R','lx7']]],['5,5',[['plLX9','L','lx8'],['plLX10','R','lx9']]],['6,6',[['plLX11','L','lx10'],['plLX12','R','lx11']]]].forEach(([k,pl])=>{
+  ISO_BLOCKS[k]={g:'grass',pl,deco:'parkCorner'}; pl.forEach(([id])=>{ const n=+id.slice(4); ISO_BIND[id]='lux:x'+n; ISO_LBL[id]=['Lô '+n,'house-02']; ISO_REG.east.push(id); }); });
 if(!ICONS.plane&&LOGO_ICONS.plane) ICONS.plane=LOGO_ICONS.plane;
 IART.mall=function(fp){ const {i0,j0,i1,j1}=fp; ishadow(i0,j0,i1,j1,60);
   let s=ibox(i0,j0,i1,j1,0,40,'#f3eadf','#fbf6ee');
@@ -15815,7 +15826,10 @@ IART.airport=function(fp){ const {i0,j0,i1,j1}=fp; ishadow(i0,j0+3.2,i1,j1,40);
   s+=ibox(i1-1.2,j1-1.6,i1-.4,j1-.8,0,50,'#e9eef4','#f7f9fb')+ibox(i1-1.5,j1-1.9,i1-.1,j1-.5,50,58,'#7cc4ef','#bfe3f3');
   return {s,h:66}; };
 const _isoDeco192=isoDeco;
-isoDeco=function(kind,bi,bj,pushP,pushB,rr,free){ if(kind!=='runway') return _isoDeco192(kind,bi,bj,pushP,pushB,rr,free);
+isoDeco=function(kind,bi,bj,pushP,pushB,rr,free){
+  if(kind==='parkCorner'){ [[2.35,2.35],[5.65,5.65]].forEach(([u,v])=>pushB(bi+u-.85,bj+v-.85,bi+u+.85,bj+v+.85,14,ifountain(bi+u,bj+v,.85)));
+    [[2.35,.55],[.55,2.35],[3.9,2.35],[2.35,3.95],[5.65,7.2],[7.2,5.65],[4.1,5.65],[5.65,4.1]].forEach(([u,v])=>{ if(free(u,v)) pushP(bi+u,bj+v,32,itree(bi+u,bj+v,.95),.35); }); return; }
+  if(kind!=='runway') return _isoDeco192(kind,bi,bj,pushP,pushB,rr,free);
   let s=ipg([[bi+.6,bj+2.6,2.7],[bi+7.4,bj+2.6,2.7],[bi+7.4,bj+5.4,2.7],[bi+.6,bj+5.4,2.7]],IC('#6f767f'));
   for(let t=bi+1;t<bi+7;t+=.9) s+=ipg([[t,bj+3.93,2.75],[t+.45,bj+3.93,2.75],[t+.45,bj+4.07,2.75],[t,bj+4.07,2.75]],IC('#ffffff'));
   [bj+2.8,bj+5.2].forEach(v=>{ for(let t=bi+.9;t<bi+7.2;t+=.7) s+=ipg([[t,v-.05,2.75],[t+.12,v-.05,2.75],[t+.12,v+.05,2.75],[t,v+.05,2.75]],IC('#ffd36b')); });
@@ -18186,7 +18200,7 @@ function socCasePosts(d,r){
 function socGenDay(d){
   const S=socNorm(); if(S.genDay>=d) return; S.genDay=d;
   const r=sdRng(sdHash(S.seed+':'+d)), n=SOC_CFG.feedMin+Math.floor(r()*(SOC_CFG.feedMax-SOC_CFG.feedMin+1));
-  const npcs=SOC_NPC.filter(socNpcOk), extra=socCasePosts(d,r);
+  const npcs=SOC_NPC.filter(socNpcOk), extra=[];
   const used=new Set();
   for(let i=0;i<n;i++){
     let txt, N;
@@ -18213,13 +18227,13 @@ function socPostHTML(p,mine){
     <footer><span>❤ ${p.likes.toLocaleString('vi-VN')}</span><span>💬 ${p.cm.toLocaleString('vi-VN')}</span><span>↗ ${p.sh.toLocaleString('vi-VN')}</span>${mine?`<button class="socdel" data-soc="del:${sdEsc(p.id)}">Xoá</button>`:''}</footer></article>`;
 }
 function socHTML(){
-  const S=socNorm(), d=dayOf(W.clock); socGenDay(d);
+  const S=socNorm(), d=dayOf(W.clock); socGenDay(d); socCaseSync();
   const left=SOC_CFG.postsPerDay-(S.postDay===d?S.postN:0);
   let h=`<div class="ph-head"><button data-ph="web">‹ Internet</button><h4>Mạng Xã Hội</h4></div>
     <div class="soctabs">${[['feed','Bảng tin'],['post','Đăng bài'],['me','Hồ sơ']].map(([k,n])=>`<button data-soc="tab:${k}" aria-pressed="${SOCV===k}">${n}</button>`).join('')}</div>`;
   if(SOCMSG) h+=`<p class="socmsg">${sdEsc(SOCMSG)}</p>`;
   if(SOCV==='feed'){
-    const all=S.feed.map(p=>({p,mine:false})).concat(S.posts.map(p=>({p,mine:true}))).sort((a,b)=>b.p.t-a.p.t).slice(0,40);
+    const all=S.feed.filter(p=>p.t<=W.clock).map(p=>({p,mine:false})).concat(S.posts.map(p=>({p,mine:true}))).sort((a,b)=>b.p.t-a.p.t).slice(0,40);
     h+=all.length?all.map(x=>socPostHTML(x.p,x.mine)).join(''):'<p class="ph-note">Chưa có bài viết nào.</p>';
   } else if(SOCV==='post'){
     h+=`<div class="ph-card socform"><label class="soclbl" for="socTxt">Bạn đang nghĩ gì, ${sdEsc(pName())}?</label>
@@ -18911,24 +18925,28 @@ function opkSnap(forRid){
 function opkBroadcast(){ const N=opkN(); if(!N||!N.isHost()) return; (W.pkBots||[]).forEach(b=>{ if(b&&b.rid) N.to(b.rid,'pk',{t:'st', s:opkSnap(b.rid)}); }); }
 function opkUnseat(k,why,cash){
   const N=opkN(), b=W.pkBots[k]; if(!b||!b.rid) return;
-  const amt=cash===false?0:Math.max(0,Math.floor(b.stack||0)), rid=b.rid, nm=b.n;
+  const amt=cash===false?0:Math.max(0,Math.floor(b.stack||0)), rid=b.rid, nm=b.n, ok=b.oid||('n:'+nm);
   W.pkBots[k]=b.stash||mkBot(k); if(W.pkBots[k]) W.pkBots[k].stack=Math.max(PK_BOT_STACK,W.pkBots[k].stack||0);
-  if(N&&N.member(rid)) N.to(rid,'pk',{t:'cash', amt, why:why||''});
-  else if(amt>0){ W.pkHold=W.pkHold||{}; W.pkHold[nm]=(W.pkHold[nm]||0)+amt; }
+  if(amt>0) ldAdd(ok,amt,'Chip poker được đổi về ví');
+  if(N&&N.member(rid)) N.to(rid,'pk',{t:'cash', amt:0, paid:amt, why:why||''});
+  ldSend(ok);
   PK.msg=`${nm} rời bàn, ${W.pkBots[k].n} ngồi lại chỗ cũ.`; save(); if(W.mode==='pk') pkRender(); opkTblSync();
 }
 function opkHostRecv(d,from){
   const N=opkN(); if(from===N.me()) return;
   if(d.t==='hi'){ opkTblSync(from); if((W.pkBots||[]).some(b=>b&&b.rid===from)) N.to(from,'pk',{t:'st',s:opkSnap(from)}); return; }
   if(d.t==='sit'){
-    if(!opkHostTable()){ N.to(from,'pk',{t:'deny', why:'Chủ phòng chưa ngồi bàn Poker.'}); return; }
-    if((W.pkBots||[]).some(b=>b&&b.rid===from)) return;
-    const k=(W.pkBots||[]).findIndex(b=>b&&!b.rid); const amt=Math.max(0,Math.floor(+d.amt||0));
-    if(k<0){ N.to(from,'pk',{t:'deny', why:'Bàn đã đủ người thật.', refund:amt}); return; }
-    const m=N.member(from), nm=(m&&m.name||'Khách').slice(0,16); const held=(W.pkHold&&W.pkHold[nm])||0; if(held) delete W.pkHold[nm];
-    const bot=W.pkBots[k]; W.pkBots[k]={n:nm, col:(window.SDColorOf?SDColorOf(from):'#6fdc9c'), tight:0, aggr:0, stack:amt+held, rid:from, human:true, stash:bot};
+    const oid=N.oidOf(from), tx=String(d.tx||'').slice(0,24), X=(W.gtx&&typeof W.gtx==='object')?W.gtx:(W.gtx={}), xk=oid+':'+tx, seatK=(W.pkBots||[]).findIndex(b=>b&&b.rid===from);
+    if(seatK>=0){ N.to(from,'pk',{t:'seated', k:seatK, held:0, tx}); N.to(from,'pk',{t:'st',s:opkSnap(from)}); return; }
+    if(tx&&X[xk]){ N.to(from,'pk',{t:'dup', tx}); return; }
+    if(!opkHostTable()){ N.to(from,'pk',{t:'deny', tx, why:'Chủ phòng chưa ngồi bàn Poker.'}); return; }
+    const k=(W.pkBots||[]).findIndex(b=>b&&!b.rid); const amt=Math.floor(+d.amt||0);
+    if(!OPK_BUYS.includes(amt)){ N.to(from,'pk',{t:'deny', tx, why:'Mức mua chip không hợp lệ.'}); return; }
+    if(k<0){ N.to(from,'pk',{t:'deny', tx, why:'Bàn đã đủ người thật.'}); return; }
+    const m=N.member(from), nm=(m&&m.name||'Khách').slice(0,16); if(tx){ X[xk]={ok:true}; }
+    const bot=W.pkBots[k]; W.pkBots[k]={n:nm, col:(window.SDColorOf?SDColorOf(from):'#6fdc9c'), tight:0, aggr:0, stack:amt, rid:from, oid, human:true, stash:bot};
     PK.msg=`${nm} ngồi vào thay ${bot.n}${PK.inHand?' (vào từ ván sau)':''}.`; save(); pkRender(); opkTblSync();
-    N.to(from,'pk',{t:'seated', k, held}); N.to(from,'pk',{t:'st',s:opkSnap(from)}); return; }
+    N.to(from,'pk',{t:'seated', k, held:0, tx}); N.to(from,'pk',{t:'st',s:opkSnap(from)}); return; }
   if(d.t==='leave'){ const k=(W.pkBots||[]).findIndex(b=>b&&b.rid===from); if(k<0) return;
     if(PK.inHand){ const i=PK.players.findIndex(p=>p.rid===from); if(i>=0&&!PK.players[i].folded){ PK.players[i].leaving=true; if(PK.cur===i) pkAct(i,'fold'); else { PK.players[i].folded=true; PK.players[i].tag='Rời bàn'; pkRender(); } } else PK.players[i]&&(PK.players[i].leaving=true); W.pkBots[k].leaving=true; N.to(from,'pk',{t:'msg', txt:'Bạn sẽ rời bàn khi ván này kết thúc.'}); return; }
     opkUnseat(k,'Đã đổi chip về ví.'); return; }
@@ -18959,9 +18977,10 @@ function opkResultMsg(viewIdx){
 /* ---------- phía khách ---------- */
 function opkGuestRecv(d){
   if(d.t==='tbl'){ OPK.tbl=d; if(W.mode==='pk') pkRender(); return; }
-  if(d.t==='seated'){ OPK.seat=d.k; toast(`Đã ngồi vào bàn Poker của chủ phòng${d.held?` (nhận lại ${fmt(d.held)} chip giữ hộ)`:''}.`); return; }
-  if(d.t==='deny'){ if(d.refund){ addBank(d.refund); save(); } toast(d.why||'Không ngồi được.'); if(W.mode==='pk') pkRender(); return; }
-  if(d.t==='cash'){ if(d.amt>0){ addBank(d.amt); save(); } OPK.seat=-1; OPK.view=null; toast(`${d.why||'Rời bàn online.'}${d.amt>0?` Nhận lại ${fmt(d.amt)}.`:''}`); if(W.mode==='pk'){ PK.players=[]; PK.board=[]; PK.inHand=false; PK.msg='Bạn đã rời bàn online.'; pkRender(); } return; }
+  if(d.t==='seated'){ gpTxDone(d.tx,false); OPK.seat=d.k; toast(`Đã ngồi vào bàn Poker của chủ phòng${d.held?` (nhận lại ${fmt(d.held)} chip giữ hộ)`:''}.`); return; }
+  if(d.t==='dup'){ gpTxDone(d.tx,false); return; }
+  if(d.t==='deny'){ const p=gpTxDone(d.tx,true); toast((d.why||'Không ngồi được.')+(p&&p.amt>0?` Đã hoàn lại ${fmt(p.amt)}.`:'')); if(W.mode==='pk') pkRender(); return; }
+  if(d.t==='cash'){ if(d.amt>0){ addBank(d.amt); save(); } OPK.seat=-1; OPK.view=null; toast(`${d.why||'Rời bàn online.'}${(d.paid||d.amt)>0?` Chip đổi về ví: ${fmt(d.paid||d.amt)}.`:''}`); if(W.mode==='pk'){ PK.players=[]; PK.board=[]; PK.inHand=false; PK.msg='Bạn đã rời bàn online.'; pkRender(); } return; }
   if(d.t==='msg'){ toast(d.txt); return; }
   if(d.t==='st'){ const s=d.s; if(s.me<0) return; OPK.seat=Math.max(0,s.me-1); OPK.view=s;
     if(!s.inHand&&s.hid&&s.hid!==OPK.lastHid&&s.players.some(p=>p.win)){ OPK.lastHid=s.hid; passTime(ROUND_MIN); }
@@ -18993,7 +19012,7 @@ function opkGuestRender(base){
 { const _pa=pkAct; pkAct=function(i,type,to){ if(opkGuestSeated()&&W.mode==='pk'&&OPK.view){ if(i===0&&PK.cur===0){ opkN().send('pk',{t:'act',type,to:+to||0}); PK.busy=true; pkControls(); } return; } return _pa.apply(this,arguments); }; }
 { const _pst=pkStart; pkStart=function(){ if(opkGuestSeated()) return; return _pst.apply(this,arguments); }; }
 $('pkCtl').addEventListener('click',e=>{ const b=e.target.closest('[data-opk]'); if(!b||b.disabled||modalOpen()) return; e.stopPropagation(); const [a,v]=b.dataset.opk.split(':'), N=opkN(); if(!N) return;
-  if(a==='sit'){ const amt=+v; if(W.pkStack>0){ toast('Đổi chip bàn máy về ví trước.'); return; } if(W.bank<amt) return; addBank(-amt); save(); N.send('pk',{t:'sit',amt}); b.disabled=true; return; }
+  if(a==='sit'){ const amt=+v; if(W.pkStack>0){ toast('Đổi chip bàn máy về ví trước.'); return; } if(W.bank<amt) return; gpTxNew('pk',{t:'sit',amt},amt); b.disabled=true; return; }
   if(a==='leave'){ N.send('pk',{t:'leave'}); return; } },true);
 { const _en=pkEnter; pkEnter=function(){ if(opkGuest()){ opkN().send('pk',{t:'hi'}); if(OPK.view&&OPK.seat>=0) return pkRender(); } return _en.apply(this,arguments); }; }
 function opkInit(){ const N=opkN(); if(!N||N._opk) return; N._opk=true;
@@ -19001,13 +19020,13 @@ function opkInit(){ const N=opkN(); if(!N||N._opk) return; N._opk=true;
   N.sub((ev,data)=>{
     if(ev==='leave'&&N.isHost()){ const k=(W.pkBots||[]).findIndex(b=>b&&b.rid===data.id); if(k>=0){ if(PK.inHand){ const i=PK.players.findIndex(p=>p.rid===data.id); if(i>=0){ PK.players[i].leaving=true; W.pkBots[k].leaving=true; if(PK.cur===i) pkAct(i,'fold'); else { PK.players[i].folded=true; PK.players[i].tag='Mất kết nối'; pkRender(); } } } else opkUnseat(k,'',true); } }
     if(ev==='join'&&N.isHost()) setTimeout(()=>opkTblSync(data.id),400);
-    if((ev==='closed'||ev==='left')){ if(!OPK.view){ (W.pkBots||[]).forEach((b,k)=>{ if(b&&b.rid){ const nm=b.n, amt=b.stack||0; W.pkBots[k]=b.stash||mkBot(k); if(amt>0){ W.pkHold=W.pkHold||{}; W.pkHold[nm]=(W.pkHold[nm]||0)+amt; } } }); }
+    if((ev==='closed'||ev==='left')){ if(!OPK.view){ (W.pkBots||[]).forEach((b,k)=>{ if(b&&b.rid){ const nm=b.n, amt=b.stack||0; W.pkBots[k]=b.stash||mkBot(k); if(amt>0) ldAdd(b.oid||('n:'+nm),amt,'Chip poker được giữ hộ'); } }); save(); }
       if(OPK.view){ toast('Mất kết nối bàn Poker online. Chip đang ở bàn được chủ phòng giữ hộ, ngồi lại sẽ nhận lại.'); }
       OPK.view=null; OPK.seat=-1; OPK.tbl=null; if(W.mode==='pk'){ PK.players=[]; PK.board=[]; PK.inHand=false; pkRender(); } }
   }); }
 window.addEventListener('load',opkInit);
 /* save: không lưu ghế người thật như bot; tiền của khách vắng mặt được giữ hộ theo tên */
-{ const _sv=start; start=function(){ const r=_sv.apply(this,arguments); try{ (W.pkBots||[]).forEach((b,k)=>{ if(b&&b.rid){ const nm=b.n, amt=b.stack||0; W.pkBots[k]=b.stash||null; if(amt>0){ W.pkHold=W.pkHold||{}; W.pkHold[nm]=(W.pkHold[nm]||0)+amt; } } }); if(!W.pkHold||typeof W.pkHold!=='object') W.pkHold={}; }catch(e){} return r; }; }
+{ const _sv=start; start=function(){ const r=_sv.apply(this,arguments); try{ (W.pkBots||[]).forEach((b,k)=>{ if(b&&b.rid){ const nm=b.n, amt=b.stack||0; W.pkBots[k]=b.stash||null; if(amt>0) ldAdd(b.oid||('n:'+nm),amt,'Chip poker được giữ hộ'); } }); if(!W.pkHold||typeof W.pkHold!=='object') W.pkHold={}; }catch(e){} return r; }; }
 { const st=document.createElement('style'); st.textContent=`.opkbox{border:1px dashed var(--line); border-radius:12px; padding:10px; margin-bottom:10px} .opknote{margin:0 0 8px; text-align:center; font-size:13px; color:var(--muted)}`; document.head.appendChild(st); }
 
 /* =========================================================
@@ -19065,7 +19084,7 @@ f1Apply=function(R,order,mine,dnf,opts){
   const live=opts.live||[];
   Object.values(F.guests).forEach(g=>{ if(!g.team) return; const sid=g.team+':'+g.seat, pos=order.indexOf(sid)+1; if(!pos) return; const gd=dn.includes(sid), pay=f1PayFor(g.team,pos,gd);
     g.starts=(g.starts||0)+1; if(!gd&&pos===1) g.wins=(g.wins||0)+1; if(!gd&&pos<=3) g.pods=(g.pods||0)+1;
-    const rec={r:R.n, pos:gd?-1:pos, pay, d:dayOf(W.clock)}; if(live.includes(g.name)) rec.live=true; else { g.owed=(g.owed||0)+pay; rec.ai=true; }
+    const rec={r:R.n, pos:gd?-1:pos, pay, d:dayOf(W.clock)}; if(live.includes(g.oid||g.name)) rec.live=true; else { g.owed=(g.owed||0)+pay; rec.ai=true; }
     (g.log=g.log||[]).push(rec); if(g.log.length>12) g.log=g.log.slice(-12); });
   let msg='';
   if(mine&&my){ const t=f1T(F.team), isDnf=dn.includes(my), pos=order.indexOf(my)+1, pts=isDnf?0:(F1_PTS[pos-1]||0), beat=!isDnf&&pos<=t.goal, goalB=beat?Math.round(t.sal*.25):0, pay=t.sal+pts*2000+(pos===1&&!isDnf?50000:0)+goalB;
@@ -19121,7 +19140,7 @@ f1Daily=function(d){
   if(f1SeasonOn()){
     let R=F.cal[F.round];
     while(R&&!R.done&&d>R.q+1){
-      const my=f1MySeat(); f1GridOf(R); f1Apply(R,f1SimRace(R,f1Seats().filter(id=>id!==my)),false);
+      const my=f1MySeat(); f1GridOf(R); { const keep=my?(F.dpts[my]||0):0; f1Apply(R,f1SimRace(R,f1Seats()),false); if(my) F.dpts[my]=keep; }
       if(my){ F.miss++; m+=`F1: bạn vắng mặt ở ${R.n}, không có điểm. `;
         if(F.miss>=2&&F.round<F.cal.length){ const t=f1T(F.team); F.team=null; F.cool=d+10; if(!Object.values(F.guests).some(g=>g.team)) F.cal=[];
           m+=`${t.n} chấm dứt hợp đồng vì bạn vắng 2 chặng liên tiếp. `;
@@ -19198,7 +19217,7 @@ function f1CalHTML(){ const F=F1(); return `<h3 class="sh">Lịch thi đấu · 
 f1HTML=function(){
   const F=f1Norm(); let h=''; const N=window.SDNet, guests=Object.values(F.guests).filter(g=>g.team);
   const stat=`<p class="mnote">${F.titles?`${F.titles} chức vô địch thế giới · `:''}${F.starts} lần xuất phát · ${F.wins} chiến thắng · ${F.pods} podium</p>`;
-  const online=N&&N.inRoom()&&N.isHost(), onG=guests.filter(g=>N&&N.inRoom()&&N.members().some(m=>m.name===g.name&&!m.host));
+  const online=N&&N.inRoom()&&N.isHost(), onG=guests.filter(g=>N&&N.inRoom()&&N.members().some(m=>!m.host&&(g.oid?N.oidOf(m.id)===g.oid:m.name===g.name)));
   const gBox=guests.length?`<div class="illrow"><h4>Tay đua online trong thế giới của bạn</h4>${guests.map(g=>`<p class="ftrow"><i style="background:${f1T(g.team).c}"></i><b>${sdEsc(g.name)}</b> · ${f1T(g.team).n} (xe số ${g.seat+1})<span class="${onG.includes(g)?'ok':''}">${onG.includes(g)?'Đang online':'Vắng · AI lái thay'}</span></p>`).join('')}</div>`:'';
   if(F.team){ const t=f1T(F.team), my=f1MySeat(), S=f1Session(), ds=f1DStand(), myPos=ds.findIndex(o=>o.id===my)+1, H=f1Health(), mate=F.team+':'+(1-F.seat);
     h+=`<div class="f1team" style="--tc:${t.c};--tc2:${t.c2}">${f1CarSVG(t)}<div><h4>${t.n} · mùa ${F.season} · xe số ${F.seat+1}</h4><p>Đồng đội: <b>${sdEsc(f1SeatName(mate))}</b>${f1GuestAt(mate)?' (người chơi online)':''} · hiệu năng xe ${f1Perf(t.p)}/100 · ${t.tag} · lương ${fmt(t.sal)}/chặng</p><p>Mục tiêu đội: về <b>top ${t.goal}</b> mỗi chặng (thưởng thêm 25% lương) · bạn đang xếp thứ ${myPos}/20 với ${F.dpts[my]||0} điểm · đội ${F.pts[F.team]||0} điểm${F.miss?` · đã vắng ${F.miss} chặng`:''}</p>${stat}</div></div>`;
@@ -19411,39 +19430,41 @@ function ftHTML(){
    AI lái thay, lương được giữ hộ). Lịch thi đấu theo ngày của chủ phòng.
    ========================================================= */
 const f1oElig=e=>(e.fame||0)>=50&&(e.wins||0)>=1;
-function f1cGuestState(name){
-  const F=f1Norm(), g=F.guests[name], S=f1SessAny(), d=dayOf(W.clock), sid=g&&g.team?g.team+':'+g.seat:null, on=f1SeasonOn();
+function f1cGuestState(key){
+  const F=f1Norm(), g=F.guests[key], S=f1SessAny(), d=dayOf(W.clock), sid=g&&g.team?g.team+':'+g.seat:null, on=f1SeasonOn();
   const ds=on?f1DStand().map(o=>({n:f1SeatName(o.id,{host:true}), seat:o.id, pts:o.pts, g:!!f1GuestAt(o.id), h:o.id===f1MySeat()})):[];
-  const HC=FT.HC, me=ftN().members().find(m=>m.name===name);
+  const HC=FT.HC, me=ftN().members().find(m=>!m.host&&ftN().oidOf(m.id)===key);
   return {season:F.season, on, day:d, round:F.round, host:pName(), hostTeam:F.team, hostSeat:F.seat,
     cal:on?F.cal.map(R=>({n:R.n, q:R.q, done:R.done, top:R.res?R.res.slice(0,3).map(id=>f1SeatName(id,{host:true})):null, my:R.res&&sid?R.res.indexOf(sid)+1:0})):[],
     ds, ts:on?f1Stand().map(o=>({id:o.id, pts:o.pts})):[],
     me:g?{team:g.team, seat:g.seat, sid, starts:g.starts||0, wins:g.wins||0, pods:g.pods||0, mate:g.team?f1SeatName(g.team+':'+(1-g.seat),{host:true}):'', log:(g.log||[]).slice(-6), pos:sid?ds.findIndex(x=>x.seat===sid)+1:0, hist:(g.hist||[]).slice(-3)}:null,
-    offers:(F.goff&&F.goff[name]&&F.goff[name].exp>=d)?F.goff[name]:null,
-    sess:on&&S?{st:S.st, n:S.R.n, t:S.R.t, night:S.R.night, q:S.R.q, gq:!!(S.R.gq&&S.R.gq[name]), gpos:sid&&S.R.grid?S.R.grid.indexOf(sid)+1:0}:null,
+    offers:(F.goff&&F.goff[key]&&F.goff[key].exp>=d)?F.goff[key]:null,
+    sess:on&&S?{st:S.st, n:S.R.n, t:S.R.t, night:S.R.night, q:S.R.q, gq:!!(S.R.gq&&S.R.gq[key]), gpos:sid&&S.R.grid?S.R.grid.indexOf(sid)+1:0}:null,
     live:HC&&HC.phase==='lobby'?{ready:!!(me&&HC.ready[me.id])}:HC&&HC.phase==='race'?{racing:true}:null,
-    full:F1_TEAMS.filter(t=>f1TeamTaken(t.id,name).length>=2).map(t=>t.id)};
+    full:F1_TEAMS.filter(t=>f1TeamTaken(t.id,key).length>=2).map(t=>t.id)};
 }
-function f1TeamTaken(team,exceptName){ const F=F1(), s=Object.values(F.guests).filter(g=>g.team===team&&g.name!==exceptName).map(g=>g.seat); if(F.team===team) s.push(F.seat); return s; }
-function f1cSync(){ const N=ftN(); if(!N||!N.inRoom()||!N.isHost()) return; N.members().forEach(m=>{ if(!m.host) N.to(m.id,'f1c',{t:'st', s:f1cGuestState(m.name)}); }); if(ftInTab('f1')) renderGarage(); }
+function f1TeamTaken(team,exceptKey){ const F=F1(), s=Object.values(F.guests).filter(g=>g.team===team&&(g.oid||g.name)!==exceptKey).map(g=>g.seat); if(F.team===team) s.push(F.seat); return s; }
+function f1cSync(){ const N=ftN(); if(!N||!N.inRoom()||!N.isHost()) return; N.members().forEach(m=>{ if(!m.host&&N.oidOf(m.id)) N.to(m.id,'f1c',{t:'st', s:f1cGuestState(N.oidOf(m.id))}); }); if(ftInTab('f1')) renderGarage(); }
 function f1cHostRecv(d,from){
-  const N=ftN(), m=N.member(from); if(!m||m.host) return; const F=f1Norm(), name=m.name, d0=dayOf(W.clock);
+  const N=ftN(), m=N.member(from); if(!m||m.host) return; const F=f1Norm(), name=m.name, key=N.oidOf(from), d0=dayOf(W.clock); if(!key) return;
   F.gel=F.gel||{}; F.goff=F.goff||{};
-  if(d.t==='hi'){ F.gel[name]={fame:+d.fame||0, wins:+d.wins||0}; const g=F.guests[name];
-    if(g&&g.owed>0){ N.to(from,'f1c',{t:'pay', amt:g.owed, why:`Lương & thưởng F1 trong lúc bạn vắng mặt (AI lái thay ${(g.log||[]).filter(x=>x.ai).length} lần)`}); g.owed=0; g.log=(g.log||[]).map(x=>Object.assign(x,{ai:false,paid:true})); save(); }
-    N.to(from,'f1c',{t:'st', s:f1cGuestState(name)}); return; }
-  if(d.t==='offers'){ const e=F.gel[name]||{}, g=F.guests[name]; if(g&&g.team) return; if(!f1oElig(e)){ N.to(from,'f1c',{t:'note', txt:'Cần danh tiếng 50 và ít nhất 1 chức vô địch giải đua (trong save của bạn).'}); return; }
+  if(!F.guests[key]&&F.guests[key]&&!F.guests[key].oid){ const lg=F.guests[key]; delete F.guests[key]; lg.oid=key; F.guests[key]=lg; if(F.gel[key]){ F.gel[key]=F.gel[key]; delete F.gel[key]; } if(F.goff[key]){ F.goff[key]=F.goff[key]; delete F.goff[key]; } }
+  if(F.guests[key]){ F.guests[key].name=name; F.guests[key].oid=key; }
+  if(d.t==='hi'){ F.gel[key]={fame:+d.fame||0, wins:+d.wins||0}; const g=F.guests[key];
+    if(g&&g.owed>0){ ldAdd(key,g.owed,`Lương & thưởng F1 trong lúc bạn vắng mặt (AI lái thay ${(g.log||[]).filter(x=>x.ai).length} lần)`); g.owed=0; g.log=(g.log||[]).map(x=>Object.assign(x,{ai:false,paid:true})); save(); } ldLegacy(key,name); ldSend(key);
+    N.to(from,'f1c',{t:'st', s:f1cGuestState(key)}); return; }
+  if(d.t==='offers'){ const e=F.gel[key]||{}, g=F.guests[key]; if(g&&g.team) return; if(!f1oElig(e)){ N.to(from,'f1c',{t:'note', txt:'Cần danh tiếng 50 và ít nhất 1 chức vô địch giải đua (trong save của bạn).'}); return; }
     const lastPos=g&&g.lastPos||0, played=!!(g&&g.starts>=3); let pool=lastPos&&played?F1_TEAMS.filter(t=>lastPos<=t.need*2):F1_TEAMS.filter(t=>t.need>=8||(e.fame>=80&&t.need>=6));
-    pool=pool.filter(t=>f1TeamTaken(t.id,name).length<2).sort(()=>Math.random()-.5).slice(0,3); if(!pool.length) pool=F1_TEAMS.filter(t=>f1TeamTaken(t.id,name).length<2).slice(-2);
-    F.goff[name]={ids:pool.map(t=>t.id), exp:d0+7}; save(); N.to(from,'f1c',{t:'st', s:f1cGuestState(name)}); return; }
-  if(d.t==='sign'){ const o=F.goff[name]; if(!o||!o.ids.includes(d.team)) return; const taken=f1TeamTaken(d.team,name), seat=[0,1].find(k=>!taken.includes(k)); if(seat==null){ N.to(from,'f1c',{t:'note', txt:'Đội này vừa đủ 2 tay đua.'}); return; }
-    const g=F.guests[name]=Object.assign(F.guests[name]||{name, owed:0, starts:0, wins:0, pods:0, log:[], hist:[]},{name, team:d.team, seat, signed:d0}); delete F.goff[name];
+    pool=pool.filter(t=>f1TeamTaken(t.id,key).length<2).sort(()=>Math.random()-.5).slice(0,3); if(!pool.length) pool=F1_TEAMS.filter(t=>f1TeamTaken(t.id,key).length<2).slice(-2);
+    F.goff[key]={ids:pool.map(t=>t.id), exp:d0+7}; save(); N.to(from,'f1c',{t:'st', s:f1cGuestState(key)}); return; }
+  if(d.t==='sign'){ const o=F.goff[key]; if(!o||!o.ids.includes(d.team)) return; const taken=f1TeamTaken(d.team,key), seat=[0,1].find(k=>!taken.includes(k)); if(seat==null){ N.to(from,'f1c',{t:'note', txt:'Đội này vừa đủ 2 tay đua.'}); return; }
+    const g=F.guests[key]=Object.assign(F.guests[key]||{name, oid:key, owed:0, starts:0, wins:0, pods:0, log:[], hist:[]},{name, oid:key, team:d.team, seat, signed:d0}); delete F.goff[key];
     if(!f1SeasonOn()) f1NewCal(F,d0);
     save(); toast(`${name} ký hợp đồng lái cho ${f1T(d.team).n}.`); N.say&&0; f1cSync(); return; }
-  if(d.t==='leave'){ const g=F.guests[name]; if(g){ if(g.team) delete F.dpts[g.team+':'+g.seat]; g.team=null; } if(!F.team&&!Object.values(F.guests).some(x=>x.team)&&f1SeasonOn()) F.cal=[]; save(); f1cSync(); return; }
-  if(d.t==='q'){ const g=F.guests[name], R=F.cal[d.round]; if(!g||!g.team||!R||R.done||d0!==R.q) return; const sid=g.team+':'+g.seat, qt=f1EnsureQT(R);
-    qt[sid]=Math.max(20,+d.time||1e6); R.gq=R.gq||{}; R.gq[name]=true; const grid=f1GridOf(R); save(); N.to(from,'f1c',{t:'note', txt:`Đã ghi thời gian phân hạng: xuất phát thứ ${grid.indexOf(sid)+1}/20.`}); f1cSync(); return; }
-  if(d.t==='cready'){ const HC=FT.HC; if(!HC||HC.phase!=='lobby') return; const g=F.guests[name]; if(!g||!g.team) return; if(d.on) HC.ready[from]={ty:F1_TY[d.ty]?d.ty:'M', pty:F1_TY[d.pty]?d.pty:'H'}; else delete HC.ready[from]; f1cSync(); return; }
+  if(d.t==='leave'){ const g=F.guests[key]; if(g){ if(g.team) delete F.dpts[g.team+':'+g.seat]; g.team=null; } if(!F.team&&!Object.values(F.guests).some(x=>x.team)&&f1SeasonOn()) F.cal=[]; save(); f1cSync(); return; }
+  if(d.t==='q'){ const g=F.guests[key], R=F.cal[d.round]; if(!g||!g.team||!R||R.done||d0!==R.q) return; const sid=g.team+':'+g.seat, qt=f1EnsureQT(R);
+    qt[sid]=Math.max(20,+d.time||1e6); R.gq=R.gq||{}; R.gq[key]=true; const grid=f1GridOf(R); save(); N.to(from,'f1c',{t:'note', txt:`Đã ghi thời gian phân hạng: xuất phát thứ ${grid.indexOf(sid)+1}/20.`}); f1cSync(); return; }
+  if(d.t==='cready'){ const HC=FT.HC; if(!HC||HC.phase!=='lobby') return; const g=F.guests[key]; if(!g||!g.team) return; if(d.on) HC.ready[from]={ty:F1_TY[d.ty]?d.ty:'M', pty:F1_TY[d.pty]?d.pty:'H'}; else delete HC.ready[from]; f1cSync(); return; }
 }
 function f1cOpenLobby(){ const N=ftN(), F=f1Norm(), S=f1SessAny(); if(!N||!N.isHost()||!S||S.st!=='race'||S.R.done) return;
   FT.HC={round:F.round, phase:'lobby', ready:{}}; N.bcast('f1c',{t:'clobby', n:S.R.n},N.me()); f1cSync(); }
@@ -19451,7 +19472,7 @@ function f1cGo(){
   const N=ftN(), F=f1Norm(), HC=FT.HC, R=F.cal[HC&&HC.round]; if(!HC||HC.phase!=='lobby'||!R||R.done||f1SessAny().st!=='race') return;
   const grid0=R.grid&&R.grid.length===20?R.grid:f1GridOf(R), my=f1MySeat(), humans=[];
   if(my){ if(W.sta<FT_STA){ toast(`Cần ${FT_STA} thể lực.`); return; } humans.push({id:N.me(), name:pName(), seat:my, ty:F.tyre, pty:F.pitTyre}); }
-  N.members().forEach(m=>{ const r=HC.ready[m.id], g=F.guests[m.name]; if(r&&g&&g.team) humans.push({id:m.id, name:m.name, seat:g.team+':'+g.seat, ty:r.ty, pty:r.pty}); });
+  N.members().forEach(m=>{ const r=HC.ready[m.id], g=F.guests[N.oidOf(m.id)]; if(r&&g&&g.team) humans.push({id:m.id, name:m.name, oid:g.oid, seat:g.team+':'+g.seat, ty:r.ty, pty:r.pty}); });
   if(!humans.some(h=>h.id!==N.me())){ toast('Chưa có tay đua online nào sẵn sàng.'); return; }
   const hs={}; humans.forEach(h=>hs[h.seat]=h);
   const grid=grid0.map(seat=>hs[seat]?{seat, k:'h', id:hs[seat].id, name:hs[seat].name, ty:hs[seat].ty}:{seat, k:'ai', name:f1SeatName(seat,{host:true, ai:true}), ty:Math.random()<.55?'M':'S', pl:2+Math.floor(Math.random()*2)});
@@ -19461,7 +19482,7 @@ function f1cGo(){
 function ftCareerSettle(S,rows){
   const N=ftN(), F=f1Norm(), R=F.cal[S.round], me=N.me();
   const order=rows.map(r=>r.seat), dnf=rows.filter(r=>r.dnf).map(r=>r.seat), hostDrove=S.humans.some(h=>h.id===me);
-  const live=S.humans.filter(h=>h.id!==me&&!rows.find(r=>r.h===h.id&&r.dnf&&!N.member(h.id))).map(h=>h.name);
+  const live=S.humans.filter(h=>h.id!==me&&!rows.find(r=>r.h===h.id&&r.dnf&&!N.member(h.id))).map(h=>h.oid||h.name);
   let msg='';
   if(R&&!R.done) msg=f1Apply(R,order,hostDrove,dnf,{live});
   S.humans.forEach(h=>{ if(h.id===me||!N.member(h.id)) return; const pos=order.indexOf(h.seat)+1, isD=dnf.includes(h.seat), pts=isD?0:(F1_PTS[pos-1]||0), pay=f1PayFor(f1ST(h.seat),pos,isD), t=f1T(h.seat);
@@ -19534,7 +19555,7 @@ function f1oHTML(){
     if(gDrive==='f1t'){ sdNetInit(); $('garPanel').innerHTML=sub+ftHTML(); if(N&&N.inRoom()&&!FT.L){ if(N.isHost()) ftLobbySync(); else N.send('f1t',{t:'hi'}); } }
     else if(gDrive==='f1o'){ $('garPanel').innerHTML=sub+f1oHTML(); if(!FT.cst||Date.now()-(FT.hiAt||0)>4000){ FT.hiAt=Date.now(); f1oHi(); } }
     else if(gDrive==='f1'&&FT.HC&&FT.HC.phase==='lobby'&&N&&N.isHost()){ const F=F1();
-      const rows=Object.values(F.guests).filter(g=>g.team).map(g=>{ const m=N.members().find(x=>x.name===g.name&&!x.host), r=m&&FT.HC.ready[m.id]; return `<p class="ftrow"><i style="background:${f1T(g.team).c}"></i><b>${ftEsc(g.name)}</b> · ${f1T(g.team).n}<span class="${r?'ok':''}">${!m?'Vắng · AI lái':r?'Sẵn sàng ✓':'Chưa sẵn sàng'}</span></p>`; }).join('');
+      const rows=Object.values(F.guests).filter(g=>g.team).map(g=>{ const m=N.members().find(x=>!x.host&&(g.oid?N.oidOf(x.id)===g.oid:x.name===g.name)), r=m&&FT.HC.ready[m.id]; return `<p class="ftrow"><i style="background:${f1T(g.team).c}"></i><b>${ftEsc(g.name)}</b> · ${f1T(g.team).n}<span class="${r?'ok':''}">${!m?'Vắng · AI lái':r?'Sẵn sàng ✓':'Chưa sẵn sàng'}</span></p>`; }).join('');
       $('garPanel').insertAdjacentHTML('afterbegin',`<div class="illrow ftlive"><h4>Phòng chờ chặng F1 online</h4>${rows}<p class="mnote">${F.team?'Bạn lái xe của mình với lốp đã chọn bên dưới.':'Bạn không lái, sẽ xem trực tiếp.'} Ai chưa sẵn sàng thì AI lái thay.</p><div class="f1btns"><button class="btn primary" data-f1c="go">Xuất phát</button><button class="btn" data-f1c="close">Đóng phòng chờ</button></div></div>`); }
   }; }
 $('garPanel').addEventListener('click',async e=>{
@@ -19582,17 +19603,25 @@ window.addEventListener('load',()=>{ f1cInit(); try{ f1Norm(); }catch(e){} });
 `; document.head.appendChild(st); }
 
 /* =========================================================
-   v1.9.23 · SỞ HỮU ONLINE: khách mua cửa hàng / lô đất trong thế giới
-   của chủ phòng. Quyền sở hữu lưu trong save của chủ phòng (W.gprop).
-   Khách vắng mặt thì AI tiếp quản; AI có thể đưa quán lên sàn chứng khoán.
+   v1.9.24 · SỞ HỮU ONLINE: khách mua cửa hàng / lô đất / sân bóng rổ trong thế giới
+   của chủ phòng. Quyền sở hữu lưu trong save của chủ phòng (W.gprop), khoá theo oid
+   (băm của ID người chơi cố định) chứ không theo tên vào phòng.
+   - Giao dịch có mã (tx): khách giữ bản ghi chờ W.gpend tới khi chủ phòng xác nhận/từ chối;
+     chủ phòng tự tính giá, chống xử lý trùng (W.gtx) và hoàn tiền theo bản ghi chờ.
+   - Tiền chủ phòng trả cho khách (lãi, lương F1, chip poker, bán lại, thưởng đội) đi qua
+     sổ chờ W.gled: gửi lại tới khi khách báo đã nhận (ack).
+   - Khách mua đội bóng đá trong giải VĐQG của chủ phòng; đội bóng rổ khách lập vào chung VĐQG bóng rổ.
    ========================================================= */
-const GP_CFG={aiCut:.3, ipoDays:10, ipoP:.2, ipoShares:10000, ipoFloat:.4, sellBack:.6};
+const GP_CFG={aiCut:.3, ipoDays:10, ipoP:.2, ipoShares:10000, ipoFloat:.4, sellBack:.6, teamMax:3, bbStr:46};
 const GP_PL={p2:'plBiz',k1:'plK1',k2:'plK2',k3:'plK3'};
 const gpN=()=>window.SDNet;
 const gpKey=(kind,id)=>kind==='land'?'lux:'+id:id;
 function gpReg(){ if(!W.gprop||typeof W.gprop!=='object') W.gprop={}; return W.gprop; }
-const gpOnline=name=>{ const N=gpN(); return !!(N&&N.inRoom()&&N.isHost()&&N.members().some(m=>m.name===name&&!m.host)); };
-const gpMemberId=name=>{ const N=gpN(); const m=N&&N.members().find(x=>x.name===name&&!x.host); return m&&m.id; };
+const gpMemById=oid=>{ const N=gpN(); return oid&&N&&N.inRoom()&&N.members().find(m=>!m.host&&N.oidOf(m.id)===oid)||null; };
+const gpOnlineP=P=>{ const N=gpN(); if(!(N&&N.inRoom()&&N.isHost())) return false; return P.oid?!!gpMemById(P.oid):N.members().some(m=>!m.host&&m.name===P.owner); };
+const gpMine=P=>{ const N=gpN(); if(!N||!N.inRoom()) return false; return P.oid?P.oid===N.oid():P.owner===(N.name()||pName()); };
+const gpClean=(s,n)=>String(s==null?'':s).replace(/[<>&"'`\u0000-\u001f]/g,'').replace(/\s+/g,' ').trim().slice(0,n);
+function gpClaim(oid,name){ Object.values(gpReg()).forEach(P=>{ if(!P.oid&&P.owner===name) P.oid=oid; if(P.oid===oid) P.owner=name; }); }
 function gpShopName(P){ const T=BIZ_TYPES.find(t=>t.id===P.type); return (T?T.n:'Cửa hàng')+(LOTS[P.lot]&&LOTS[P.lot].sh?' '+LOTS[P.lot].sh:''); }
 function gpTicker(P){ const T=BIZ_TYPES.find(t=>t.id===P.type)||{tk:'GST'}; const base=T.tk.slice(0,2); for(const c of ['G','H','K','N','Q','V','X','Y']){ const t=base+c; if(!STOCKS.some(s=>s.t===t)) return t; } return 'G'+Math.random().toString(36).slice(2,4).toUpperCase(); }
 function gpSyncStocks(){ const G=gpReg(); Object.values(G).forEach(P=>{ if(!P.ipo) return; const t=P.ipo.t;
@@ -19601,11 +19630,29 @@ function gpSyncStocks(){ const G=gpReg(); Object.values(G).forEach(P=>{ if(!P.ip
 { const _sb=syncBizStocks; syncBizStocks=function(){ const r=_sb.apply(this,arguments); try{ gpSyncStocks(); }catch(e){} return r; }; }
 { const _st=start; start=function(){ const r=_st.apply(this,arguments); try{ gpReg(); gpSyncStocks(); }catch(e){} return r; }; }
 
+/* ---------- sổ chờ chi trả (chủ phòng → khách) ---------- */
+function ldAdd(key,amt,why){ amt=Math.round(+amt||0); if(!key||!(amt>0)) return; const L=(W.gled&&typeof W.gled==='object')?W.gled:(W.gled={}); (L[key]=L[key]||[]).push({id:'l'+Date.now().toString(36)+Math.random().toString(36).slice(2,7), amt, why:String(why||'').slice(0,120)}); }
+function ldSend(key){ const N=gpN(); if(!N||!N.isHost()) return; const m=gpMemById(key); if(!m) return; ((W.gled&&W.gled[key])||[]).forEach(e=>N.to(m.id,'prop',{t:'pay', id:e.id, amt:e.amt, why:e.why})); }
+function ldAck(key,id){ const L=W.gled; if(!L||!L[key]) return; L[key]=L[key].filter(e=>e.id!==id); if(!L[key].length) delete L[key]; save(); }
+function ldLegacy(oid,name){ const L=(W.gled=W.gled||{}), k='n:'+name;
+  if(L[k]){ L[oid]=(L[oid]||[]).concat(L[k]); delete L[k]; }
+  if(W.pkHold&&W.pkHold[name]>0){ ldAdd(oid,W.pkHold[name],'Chip poker được giữ hộ'); delete W.pkHold[name]; } }
+setInterval(()=>{ try{ const N=gpN(); if(!N||!N.inRoom()) return;
+  if(N.isHost()){ Object.keys(W.gled||{}).forEach(k=>{ if(k.charAt(0)!=='n') ldSend(k); }); }
+  else gpTxResend(); }catch(e){} },8000);
+
+/* ---------- giao dịch có mã (khách → chủ phòng) ---------- */
+function gpTxNew(ch,msg,amt){ const N=gpN(); amt=Math.max(0,Math.floor(+amt||0)); const tx='t'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+  if(!W.gpend||typeof W.gpend!=='object') W.gpend={}; const m=Object.assign({tx},msg); W.gpend[tx]={ch,msg:m,amt};
+  if(amt>0) addBank(-amt); save(); N.send(ch,m); return tx; }
+function gpTxDone(tx,refund){ const p=tx&&W.gpend&&W.gpend[tx]; if(!p) return null; delete W.gpend[tx]; if(refund&&p.amt>0) addBank(p.amt); save(); return p; }
+function gpTxResend(){ const N=gpN(); if(!N||!N.inRoom()||N.isHost()) return; Object.values(W.gpend||{}).forEach(p=>N.send(p.ch,p.msg)); }
+
 /* ---------- chủ phòng: kinh doanh của khách theo ngày ---------- */
 function gpDaily(d){
   if(hell()) return ''; const G=gpReg(); let out='';
   Object.entries(G).forEach(([key,P])=>{ if(P.kind!=='shop') return; const T=BIZ_TYPES.find(t=>t.id===P.type), L=LOTS[P.lot]; if(!T||!L) return;
-    const on=gpOnline(P.owner), base=T.base*L.loc*(T.price-T.cost)*.8*(.85+Math.random()*.3), mgmt=on?1:(1-GP_CFG.aiCut);
+    const on=gpOnlineP(P), base=T.base*L.loc*(T.price-T.cost)*.8*(.85+Math.random()*.3), mgmt=on?1:(1-GP_CFG.aiCut);
     let profit=Math.round(base*mgmt*(P.ipo?(1-GP_CFG.ipoFloat):1));
     P.days=(P.days||0)+1; P.last=profit; P.ai=!on; P.total=(P.total||0)+profit; P.owed=(P.owed||0)+profit; P.rev=(P.rev||[]).concat([profit]).slice(-7);
     if(!on&&!P.ipo&&P.days>=GP_CFG.ipoDays&&Math.random()<GP_CFG.ipoP){
@@ -19613,20 +19660,22 @@ function gpDaily(d){
       P.ipo={t, p0, day:d}; P.owed+=cash; gpSyncStocks();
       (P.log=P.log||[]).push({d, txt:`AI quản lý đưa quán lên sàn với mã ${t}, giá ${fmt2(p0)}/cp. Bán ${Math.round(GP_CFG.ipoFloat*100)}% cổ phần cho công chúng, thu ${fmt(cash)}.`});
       out+=` Sàn chứng khoán: ${gpShopName(P)} của ${P.owner} lên sàn, mã ${t}.`; }
-    if(on&&P.owed>0){ const id=gpMemberId(P.owner); if(id){ gpN().to(id,'prop',{t:'pay', amt:P.owed, why:`Lãi ${gpShopName(P)} trong thế giới của ${pName()}`}); P.owed=0; } }
+    if(on&&P.owed>0&&P.oid){ ldAdd(P.oid,P.owed,`Lãi ${gpShopName(P)} trong thế giới của ${pName()}`); P.owed=0; ldSend(P.oid); }
   });
   return out;
 }
 { const _df=dailyFns; dailyFns=function(){ return _df().concat([['Sở hữu online',d=>gpDaily(d)]]); }; }
 
-/* ---------- chủ phòng: chặn mua lô đã có chủ online ---------- */
+/* ---------- thông tin lô của người chơi online ---------- */
 function gpInfoModal(P,mine){
-  const shop=P.kind==='shop', L=shop?LOTS[P.lot]:null;
-  modal({kick:shop?'Cửa hàng của người chơi online':'Lô đất của người chơi online', title:shop?`${gpShopName(P)} · của ${P.owner}`:`${P.lotName} · của ${P.owner}`, html:true,
-    body:`<span style="display:block">${shop?`Mở từ Ngày ${P.open} · đã kinh doanh ${P.days||0} ngày · lãi hôm qua ${fmt(P.last||0)} · tổng lãi ${fmt(P.total||0)}.`:`Mua từ Ngày ${P.open}, giá ${fmt(P.paid||0)}.`}</span>
-      <span style="display:block;margin-top:6px">${P.ai?`Chủ đang vắng mặt, <b>AI tạm quản lý</b> (trích ${Math.round(GP_CFG.aiCut*100)}% phí quản lý).`:'Chủ đang tự quản lý.'}${P.ipo?` Đã niêm yết mã <b>${P.ipo.t}</b> trên sàn chứng khoán.`:''}</span>
+  const shop=P.kind==='shop', court=P.kind==='land'&&P.court, L=shop?LOTS[P.lot]:null;
+  const N=gpN(), inLeague=!!(court&&P.team);
+  const acts=(court&&mine)?`<span class="gpacts"><button class="btn" data-gpbb="league">Xem giải VĐQG bóng rổ</button>${P.team?'<button class="btn" data-gpbb="edit">Sửa đội bóng rổ</button>':'<button class="btn primary" data-gpbb="new">Lập đội bóng rổ mới</button>'}</span>`:'';
+  modal({kick:shop?'Cửa hàng của người chơi online':court?'Sân bóng rổ của người chơi online':'Lô đất của người chơi online', title:shop?`${gpShopName(P)} · của ${P.owner}`:`${court?'Sân bóng rổ · ':''}${P.lotName} · của ${P.owner}`, html:true,
+    body:`<span style="display:block">${shop?`Mở từ Ngày ${P.open} · đã kinh doanh ${P.days||0} ngày · lãi hôm qua ${fmt(P.last||0)} · tổng lãi ${fmt(P.total||0)}.`:`Mua từ Ngày ${P.open}, giá ${fmt(P.paid||0)}.${inLeague?` Đội <b>${sdEsc(P.team.n||'')}</b> đang thi đấu ở giải VĐQG bóng rổ của chủ phòng.`:''}`}</span>
+      ${shop?`<span style="display:block;margin-top:6px">${P.ai?`Chủ đang vắng mặt, <b>AI tạm quản lý</b> (trích ${Math.round(GP_CFG.aiCut*100)}% phí quản lý).`:'Chủ đang tự quản lý.'}${P.ipo?` Đã niêm yết mã <b>${P.ipo.t}</b> trên sàn chứng khoán.`:''}</span>`:''}
       ${mine&&P.log&&P.log.length?`<span style="display:block;margin-top:6px">${P.log.slice(-3).map(x=>`Ngày ${x.d}: ${sdEsc(x.txt)}`).join('<br>')}</span>`:''}
-      ${mine?'':'<span style="display:block;margin-top:6px">Quyền sở hữu được lưu trong thế giới này, bạn không mua được lô này.</span>'}`,
+      ${mine?'':'<span style="display:block;margin-top:6px">Quyền sở hữu được lưu trong thế giới này, bạn không mua được lô này.</span>'}${acts}`,
     yes:'Đóng', alt:mine&&!P.ipo?`Bán lại · ${fmt(Math.round((P.paid||0)*GP_CFG.sellBack))}`:null, altFn:()=>gpSell(P)});
 }
 { const _el=enterLot; enterLot=function(lot){
@@ -19640,14 +19689,14 @@ function gpInfoModal(P,mine){
 /* nhãn trên bản đồ cho lô của người chơi online */
 { const _rm=renderMap; renderMap=function(){ const r=_rm.apply(this,arguments); try{ const G=(SDV.w&&SDV.w.gprop)||gpReg();
     Object.values(G).forEach(P=>{ if(P.kind==='shop'&&GP_PL[P.lot]) mapLabel(GP_PL[P.lot],`${gpShopName(P)} · ${P.owner} 👥`,false);
-      if(P.kind==='land'){ const i=+String(P.lot).replace('x',''); if(i) mapLabel('plLX'+i,`${P.lotName} · ${P.owner} 👥`,false); } }); }catch(e){} return r; }; }
+      if(P.kind==='land'){ const i=+String(P.lot).replace('x',''); if(i) mapLabel('plLX'+i,`${P.court?'Sân bóng rổ':P.lotName} · ${P.owner} 👥`,false); } }); }catch(e){} return r; }; }
 
-/* ---------- khách: mua cửa hàng / lô đất trong thế giới chủ phòng ---------- */
+/* ---------- khách: mua cửa hàng / lô đất / sân bóng rổ trong thế giới chủ phòng ---------- */
 const gpHostW=()=>SDV.w||{};
 function gpGuestLot(lot){
-  if(modalOpen()) return; const H=gpHostW(), L=LOTS[lot], N=gpN(), host=N.hostMember(), me=N.name()||pName(); if(!L) return;
+  if(modalOpen()) return; const H=gpHostW(), L=LOTS[lot], N=gpN(), host=N.hostMember(); if(!L) return;
   const P=H.gprop&&H.gprop[lot];
-  if(P){ gpInfoModal(P,P.owner===me); return; }
+  if(P){ gpInfoModal(P,gpMine(P)); return; }
   if((H.lots&&H.lots[lot])||(H.bizs||[]).some(b=>b.lot===lot)||(H.soldBiz&&H.soldBiz[lot])){ modal({kick:'Đã có chủ', title:`${L.n} thuộc ${host?host.name:'chủ thế giới'}`, body:'Lô này đã có chủ trong thế giới bạn đang ghé thăm.', yes:'OK'}); return; }
   const cost=L.land+L.open;
   modal({kick:`Thế giới của ${host?host.name:'chủ phòng'}`, good:true, title:`Mua ${L.n.toLowerCase()} và mở cửa hàng?`, html:true,
@@ -19656,43 +19705,213 @@ function gpGuestLot(lot){
     yes:'Thôi', no:null});
   GPPEND={lot, cost, kind:'shop'};
 }
+function gpLuxBuy(id,court){ const LL=LUX_LOTS.find(x=>x.id===id); if(!LL) return; const cost=LL.price+(court?COURTS.bball.cost:0);
+  if(W.bank<cost){ toast(`Cần ${fmt(cost)}.`); return; }
+  gpTxNew('prop',{t:'buy', kind:'land', lot:id, court:court?'bball':''},cost); toast('Đang gửi yêu cầu mua…'); }
 function gpGuestLux(id){
-  if(modalOpen()) return; const H=gpHostW(), LL=LUX_LOTS.find(x=>x.id===id), N=gpN(), host=N.hostMember(), me=N.name()||pName(); if(!LL) return;
-  const P=H.gprop&&H.gprop['lux:'+id]; if(P){ gpInfoModal(P,P.owner===me); return; }
+  if(modalOpen()) return; const H=gpHostW(), LL=LUX_LOTS.find(x=>x.id===id), N=gpN(), host=N.hostMember(); if(!LL) return;
+  const P=H.gprop&&H.gprop['lux:'+id]; if(P){ gpInfoModal(P,gpMine(P)); return; }
   if(H.lux&&H.lux[id]){ modal({kick:'Đã có chủ', title:`${LL.n} thuộc ${host?host.name:'chủ thế giới'}`, body:'Lô đất này đã có chủ trong thế giới bạn đang ghé thăm.', yes:'OK'}); return; }
-  modal({kick:`Khu cao cấp · thế giới của ${host?host.name:'chủ phòng'}`, good:true, title:`Mua ${LL.n} với ${fmt(LL.price)}?`, body:'Quyền sở hữu lô đất được lưu trong thế giới này. Bán lại được 60% giá mua.', yes:W.bank>=LL.price?`Mua ${fmt(LL.price)}`:'Không đủ tiền', no:'Thôi',
-    yesFn:()=>{ if(W.bank<LL.price){ toast(`Cần ${fmt(LL.price)}.`); return; } addBank(-LL.price); save(); gpN().send('prop',{t:'buy', kind:'land', lot:id, paid:LL.price}); toast('Đang gửi yêu cầu mua…'); }});
+  const cc=COURTS.bball.cost, tot=LL.price+cc;
+  modal({kick:`Khu cao cấp · thế giới của ${host?host.name:'chủ phòng'}`, good:true, title:`Mua ${LL.n}${LL.prem?' (lô công viên)':''} với ${fmt(LL.price)}?`,
+    body:`Quyền sở hữu lô đất được lưu trong thế giới này. Bán lại được 60% giá mua. Hoặc mua kèm sân bóng rổ (${fmt(tot)}) để lập đội thi đấu cùng giải VĐQG bóng rổ của chủ phòng.`,
+    yes:W.bank>=LL.price?`Mua đất ${fmt(LL.price)}`:'Không đủ tiền', no:'Thôi', alt:`Đất + sân bóng rổ · ${fmt(tot)}`,
+    yesFn:()=>gpLuxBuy(id,false), altFn:()=>gpLuxBuy(id,true)});
 }
 let GPPEND=null;
-$('mBody').addEventListener('click',e=>{ const b=e.target.closest('[data-gptype]'); if(!b||!GPPEND) return; const P=GPPEND; GPPEND=null; $('modal').hidden=true;
-  if(W.bank<P.cost){ toast(`Cần ${fmt(P.cost)}.`); return; } addBank(-P.cost); save(); gpN().send('prop',{t:'buy', kind:'shop', lot:P.lot, type:b.dataset.gptype, paid:P.cost}); toast('Đang gửi yêu cầu mua…'); });
-function gpSell(P){ const N=gpN(); if(!N||!N.inRoom()) return; N.send('prop',{t:'sell', key:P.kind==='land'?'lux:'+P.lot:P.lot}); }
+const gpSell=P=>{ const N=gpN(); if(!N||!N.inRoom()) return; gpTxNew('prop',{t:'sell', key:P.kind==='land'?'lux:'+P.lot:P.lot},0); toast('Đang gửi yêu cầu bán…'); };
 
-/* ---------- kênh 'prop' ---------- */
+/* ---------- chủ phòng: giải đấu cho khách ---------- */
+function gpFcPrice(a){ return Math.round((150000+(a.str||40)*5000)/1000)*1000; }
+function gpNameTaken(name,except){ const lc=String(name).toLowerCase(); const arr=[]; try{ if(W.fc){ arr.push(W.fc.name); (W.fc.ai||[]).forEach(a=>arr.push(a.n)); } if(W.bb){ arr.push(W.bb.name); (W.bb.ai||[]).forEach(a=>arr.push(a.n)); } }catch(e){}
+  return arr.some(n=>n&&n!==except&&String(n).toLowerCase()===lc); }
+function gpTeamData(d,pal,cur){ const n=gpClean(d.n,24), s=gpClean(d.short,4).toUpperCase(); if(n.length<2||s.length<2) return null; return {n, short:s, c1:pal.includes(d.c1)?d.c1:pal[0], c2:pal.includes(d.c2)?d.c2:pal[1]}; }
+function gpFcOwned(F,oid){ return (F.ai||[]).findIndex(a=>a.owner&&a.owner.oid===oid); }
+function gpBbOwned(B,oid){ return (B.ai||[]).findIndex(a=>a.owner&&a.owner.oid===oid); }
 function gpHostRecv(d,from){
-  const N=gpN(), m=N.member(from); if(!m||m.host) return; const G=gpReg(), name=m.name, dd=dayOf(W.clock);
-  if(d.t==='hi'){ let tot=0; Object.values(G).forEach(P=>{ if(P.owner===name&&P.owed>0){ tot+=P.owed; P.owed=0; } }); if(tot>0){ N.to(from,'prop',{t:'pay', amt:tot, why:`Lãi cửa hàng của bạn trong thế giới của ${pName()} (gồm thời gian AI quản lý)`}); save(); } return; }
-  if(d.t==='buy'){ const paid=Math.max(0,Math.floor(+d.paid||0)), refuse=txt=>N.to(from,'prop',{t:'deny', refund:paid, txt});
-    if(d.kind==='shop'){ const L=LOTS[d.lot], T=BIZ_TYPES.find(t=>t.id===d.type); if(!L||!T||paid<L.land+L.open) return refuse('Thông tin mua không hợp lệ.');
-      if(G[d.lot]||W.lots[d.lot]||bizAt(d.lot)||(W.soldBiz&&W.soldBiz[d.lot])) return refuse('Lô này vừa có người mua.');
-      G[d.lot]={kind:'shop', lot:d.lot, type:d.type, owner:name, open:dd, paid, days:0, total:0, owed:0, last:0, rev:[], ipo:null, ai:false, log:[{d:dd, txt:`${name} mở ${T.n}.`}]};
-      toast(`${name} mua ${L.n} và mở ${T.n} trong thế giới của bạn.`); }
-    else { const LL=LUX_LOTS.find(x=>x.id===d.lot); if(!LL||paid<LL.price) return refuse('Thông tin mua không hợp lệ.'); if(G['lux:'+d.lot]||(lux()&&lux()[d.lot])) return refuse('Lô này vừa có người mua.');
-      G['lux:'+d.lot]={kind:'land', lot:d.lot, lotName:LL.n, owner:name, open:dd, paid, log:[{d:dd, txt:`${name} mua ${LL.n}.`}]}; toast(`${name} mua ${LL.n} ở Khu cao cấp trong thế giới của bạn.`); }
-    save(); N.to(from,'prop',{t:'ok', txt:'Mua thành công! Quyền sở hữu đã được lưu trong thế giới này.'}); if(typeof sdvSendAll==='function') sdvSendAll(); if(['map','map2','map3','map5'].includes(W.mode)) renderMap(); return; }
-  if(d.t==='sell'){ const P=G[d.key]; if(!P||P.owner!==name||P.ipo) return; const back=Math.round((P.paid||0)*GP_CFG.sellBack)+(P.owed||0); delete G[d.key]; save();
-    N.to(from,'prop',{t:'pay', amt:back, why:'Bán lại tài sản cho thành phố'}); toast(`${name} đã bán lại tài sản trong thế giới của bạn.`); if(typeof sdvSendAll==='function') sdvSendAll(); return; }
+  const N=gpN(), m=N.member(from); if(!m||m.host) return; const oid=N.oidOf(from); if(!oid) return; const G=gpReg(), name=m.name, dd=dayOf(W.clock);
+  gpClaim(oid,name);
+  if(d.t==='ack'){ ldAck(oid,String(d.id||'')); return; }
+  if(d.t==='hi'){ ldLegacy(oid,name); Object.values(G).forEach(P=>{ if(P.oid===oid&&P.owed>0){ ldAdd(oid,P.owed,`Lãi cửa hàng của bạn trong thế giới của ${pName()} (gồm thời gian AI quản lý)`); P.owed=0; } }); save(); ldSend(oid); return; }
+  if(!d.tx) return;
+  const X=(W.gtx&&typeof W.gtx==='object')?W.gtx:(W.gtx={}), xk=oid+':'+String(d.tx).slice(0,24);
+  if(X[xk]){ N.to(from,'prop',{t:X[xk].ok?'ok':'deny', tx:d.tx, txt:X[xk].txt}); return; }
+  const done=(ok,txt)=>{ X[xk]={ok,txt}; const ks=Object.keys(X); if(ks.length>300) ks.slice(0,ks.length-300).forEach(k=>delete X[k]); save();
+    N.to(from,'prop',{t:ok?'ok':'deny', tx:d.tx, txt}); if(ok){ if(typeof sdvSendAll==='function') sdvSendAll(); if(['map','map2','map3','map5'].includes(W.mode)) renderMap(); } };
+  const bad=txt=>done(false,txt);
+  if(d.t==='buy'){
+    if(d.kind==='shop'){ const L=LOTS[d.lot], T=BIZ_TYPES.find(t=>t.id===d.type); if(!L||!T) return bad('Thông tin mua không hợp lệ.');
+      if(G[d.lot]||W.lots[d.lot]||bizAt(d.lot)||(W.soldBiz&&W.soldBiz[d.lot])) return bad('Lô này vừa có người mua.');
+      const paid=L.land+L.open;
+      G[d.lot]={kind:'shop', lot:d.lot, type:d.type, owner:name, oid, open:dd, paid, days:0, total:0, owed:0, last:0, rev:[], ipo:null, ai:false, log:[{d:dd, txt:`${name} mở ${T.n}.`}]};
+      toast(`${name} mua ${L.n} và mở ${T.n} trong thế giới của bạn.`); return done(true,'Mua thành công! Quyền sở hữu đã được lưu trong thế giới này.'); }
+    const LL=LUX_LOTS.find(x=>x.id===d.lot); if(!LL) return bad('Thông tin mua không hợp lệ.'); if(G['lux:'+d.lot]||(lux()&&lux()[d.lot])) return bad('Lô này vừa có người mua.');
+    const court=d.court==='bball'?'bball':null, paid=LL.price+(court?COURTS.bball.cost:0);
+    G['lux:'+d.lot]={kind:'land', lot:d.lot, lotName:LL.n, owner:name, oid, open:dd, paid, court, log:[{d:dd, txt:`${name} mua ${LL.n}${court?' và xây sân bóng rổ':''}.`}]};
+    toast(`${name} mua ${LL.n}${court?' kèm sân bóng rổ':''} ở Khu cao cấp trong thế giới của bạn.`); return done(true,court?'Mua đất và xây sân bóng rổ thành công! Chạm vào lô để lập đội bóng rổ.':'Mua thành công! Quyền sở hữu đã được lưu trong thế giới này.'); }
+  if(d.t==='sell'){ const P=G[d.key]; if(!P||P.oid!==oid) return bad('Bạn không sở hữu tài sản này.'); if(P.ipo) return bad('Quán đang niêm yết, chưa bán lại được.');
+    if(P.team&&W.bb&&W.bb.ai[P.team.k]&&W.bb.ai[P.team.k].owner&&W.bb.ai[P.team.k].owner.oid===oid){ const t=W.bb.ai[P.team.k]; W.bb.ai[P.team.k]=t.orig||t; }
+    const back=Math.round((P.paid||0)*GP_CFG.sellBack)+(P.owed||0); delete G[d.key]; ldAdd(oid,back,'Bán lại tài sản cho thành phố');
+    toast(`${name} đã bán lại tài sản trong thế giới của bạn.`); done(true,`Đã bán lại, ${fmt(back)} được chuyển vào ví của bạn.`); ldSend(oid); return; }
+  if(d.t==='bbnew'||d.t==='bbedit'){ const P=G[d.key]; if(!P||P.oid!==oid||P.court!=='bball') return bad('Bạn cần có sân bóng rổ trong thế giới này.');
+    const B=W.bb; if(!B||!B.ai) return bad(`${pName()} chưa có giải VĐQG bóng rổ. Chủ phòng cần lập Nhà thi đấu bóng rổ chuyên nghiệp trước.`);
+    const td=gpTeamData(d,BB_PAL); if(!td) return bad('Tên đội cần 2–24 ký tự, tên viết tắt 2–4 ký tự.');
+    if(d.t==='bbnew'){ if(P.team) return bad('Sân này đã có đội.'); if(gpBbOwned(B,oid)>=0) return bad('Bạn đã có đội trong giải.'); if(gpNameTaken(td.n)) return bad('Tên đội đã được dùng trong giải.');
+      const free=B.ai.map((a,k)=>k).filter(k=>!(B.ai[k].owner)); if(!free.length||B.ai.filter(a=>a.owner).length>=GP_CFG.teamMax) return bad('Giải đã đủ đội của người chơi online.');
+      const k=free[Math.floor(Math.random()*free.length)], old=B.ai[k];
+      B.ai[k]={n:td.n, short:td.short, c1:td.c1, c2:td.c2, str:GP_CFG.bbStr, roster:null, w:0, l:0, owner:{oid, name}, orig:old};
+      P.team={k, n:td.n}; (P.log=P.log||[]).push({d:dd, txt:`Lập đội ${td.n} thi đấu giải VĐQG bóng rổ.`}); toast(`${name} lập đội bóng rổ ${td.n}, thay ${old.n} ở giải VĐQG.`); return done(true,`Đội ${td.n} đã vào giải VĐQG bóng rổ của ${pName()}.`); }
+    if(!P.team) return bad('Sân chưa có đội.'); const t=B.ai[P.team.k]; if(!t||!t.owner||t.owner.oid!==oid) return bad('Không tìm thấy đội của bạn.'); if(gpNameTaken(td.n,t.n)) return bad('Tên đội đã được dùng trong giải.');
+    Object.assign(t,td); P.team.n=td.n; return done(true,'Đã cập nhật đội bóng rổ.'); }
+  if(d.t==='fcbuy'||d.t==='fcedit'||d.t==='fcsell'){ const F=W.fc; if(!F||!F.ai) return bad(`${pName()} chưa có giải VĐQG bóng đá.`);
+    if(d.t==='fcbuy'){ const i=Math.floor(+d.i); if(!(i>=1&&i<=F.ai.length)) return bad('Đội không hợp lệ.'); const a=F.ai[i-1]; if(a.owner) return bad('Đội này đã có chủ.'); if(gpFcOwned(F,oid)>=0) return bad('Bạn đã sở hữu một đội trong giải.');
+      a.owner={oid, name}; a.paid=gpFcPrice(a); a.orig={n:a.n, short:a.short, c1:a.c1, c2:a.c2}; toast(`${name} mua đội ${a.n} trong giải VĐQG của bạn.`); return done(true,`Bạn đã mua ${a.n}. Chạm sân vận động để sửa tên, màu áo.`); }
+    const k=gpFcOwned(F,oid); if(k<0) return bad('Bạn không sở hữu đội nào.'); const a=F.ai[k];
+    if(d.t==='fcedit'){ const td=gpTeamData(d,FC_PAL); if(!td) return bad('Tên đội cần 2–24 ký tự, tên viết tắt 2–4 ký tự.'); if(gpNameTaken(td.n,a.n)) return bad('Tên đội đã được dùng trong giải.'); Object.assign(a,td); return done(true,'Đã cập nhật đội bóng.'); }
+    const back=Math.round((a.paid||0)*GP_CFG.sellBack); Object.assign(a,a.orig||{}); delete a.owner; delete a.paid; delete a.orig; ldAdd(oid,back,'Bán lại đội bóng'); done(true,`Đã bán lại đội, ${fmt(back)} được chuyển vào ví của bạn.`); ldSend(oid); return; }
 }
+/* tiền thưởng trận cho đội do khách sở hữu (chủ phòng chạy giải) */
+function gpLeaguePay(kind,x){ const N=gpN(); if(!N||!N.isHost()||!N.inRoom()) return; const touched=new Set();
+  const pay=(a,home,my,op,nm)=>{ if(!a||!a.owner||!a.owner.oid) return; const amt=Math.round((home?9000:4000)+(a.str||40)*250+(my>op?8000:my===op?2500:0)); ldAdd(a.owner.oid,amt,`Đội ${a.n} · ${nm}`); touched.add(a.owner.oid); };
+  if(kind==='fc'){ const F=W.fc; if(!F||(x.comp&&x.comp!=='L')) return; const nm=`${fcTeam(x.h).short} ${x.hs}-${x.as} ${fcTeam(x.a).short}`; if(x.h>0) pay(F.ai[x.h-1],true,x.hs,x.as,nm); if(x.a>0) pay(F.ai[x.a-1],false,x.as,x.hs,nm); }
+  else { const B=W.bb; if(!B||!B.ai) return; const nm=`${B.ai[x.h-1]?B.ai[x.h-1].short:B.short} ${x.hs}-${x.as} ${B.ai[x.a-1]?B.ai[x.a-1].short:B.short}`; if(x.h>0) pay(B.ai[x.h-1],true,x.hs,x.as,nm); if(x.a>0) pay(B.ai[x.a-1],false,x.as,x.hs,nm); }
+  touched.forEach(k=>ldSend(k)); }
+{ const _fp=fcPlayed; fcPlayed=function(x){ const r=_fp.apply(this,arguments); try{ gpLeaguePay('fc',x); }catch(e){ console.error(e); } return r; }; }
+{ const _ba=bbApply; bbApply=function(g,S){ const r=_ba.apply(this,arguments); try{ gpLeaguePay('bb',g); }catch(e){ console.error(e); } return r; }; }
+
+/* ---------- khách: nhận kết quả ---------- */
 function gpGuestRecv(d){
-  if(d.t==='pay'){ if(d.amt>0){ addBank(d.amt); save(); toast(`${d.why}: +${fmt(d.amt)}.`); } return; }
-  if(d.t==='ok'){ modal({kick:'Sở hữu online', good:true, title:'Đã mua xong', body:d.txt, yes:'Tuyệt'}); return; }
-  if(d.t==='deny'){ if(d.refund>0){ addBank(d.refund); save(); } modal({kick:'Sở hữu online', title:'Không mua được', body:`${d.txt} Đã hoàn lại ${fmt(d.refund||0)}.`, yes:'OK'}); return; }
+  const N=gpN();
+  if(d.t==='pay'){ const id=String(d.id||''); if(id){ N.send('prop',{t:'ack', id}); const seen=(W.netSeen=Array.isArray(W.netSeen)?W.netSeen:[]); if(seen.includes(id)) return; seen.push(id); if(seen.length>80) seen.splice(0,seen.length-80); }
+    if(d.amt>0){ addBank(d.amt); save(); toast(`${d.why||'Tiền được chuyển về'}: +${fmt(d.amt)}.`); } else save(); return; }
+  if(d.t==='ok'){ const p=gpTxDone(d.tx,false); if(p) modal({kick:'Sở hữu online', good:true, title:'Hoàn tất', body:d.txt||'Xong.', yes:'Tuyệt'}); return; }
+  if(d.t==='deny'){ const p=gpTxDone(d.tx,true); if(p) modal({kick:'Sở hữu online', title:'Không thực hiện được', body:`${d.txt||''}${p.amt>0?` Đã hoàn lại ${fmt(p.amt)}.`:''}`, yes:'OK'}); return; }
 }
 function gpInit(){ const N=gpN(); if(!N||N._gp) return; N._gp=true;
   N.on('prop',(d,from)=>{ if(!d) return; if(N.isHost()) gpHostRecv(d,from); else gpGuestRecv(d); });
-  N.sub(ev=>{ if(ev==='joined'&&!N.isHost()) setTimeout(()=>N.send('prop',{t:'hi'}),700); }); }
+  N.sub(ev=>{ if(ev==='joined'&&!N.isHost()) setTimeout(()=>{ N.send('prop',{t:'hi'}); gpTxResend(); },700); }); }
 window.addEventListener('load',gpInit);
-{ const st=document.createElement('style'); st.textContent=`.gptypes{display:grid; grid-template-columns:1fr 1fr; gap:6px} .gptypes .btn{min-height:44px; font-size:13px}`; document.head.appendChild(st); }
+
+/* ---------- khách: xem giải VĐQG, mua/sửa đội ---------- */
+const gpHr=(a,b)=>`<div class="gprow"><b>${a}</b>${b}</div>`;
+function gpStadiumHTML(){
+  const me=gpN().oid(), rows=sdvWith(()=>{ const F=fc(); return fcTable().map((t,pos)=>{ const tm=fcTeam(t.i), a=t.i>0?F.ai[t.i-1]:null; return {i:t.i,pos:pos+1,n:tm.n,p:t.p,pts:t.pts,gd:t.gf-t.ga,owner:a&&a.owner||null,price:a?gpFcPrice(a):0,str:a?a.str:0}; }); });
+  const have=rows.some(r=>r.owner&&r.owner.oid===me);
+  return `<div class="gplg">${rows.map(r=>`<div class="gprow"><b>${r.pos}</b><span class="gpn">${sdEsc(r.n)}${r.i===0?' <small>chủ phòng</small>':r.owner?` <small>${sdEsc(r.owner.name)} 👥</small>`:''}</span><i>${r.p}tr · ${r.pts}đ</i>`+
+    (r.i===0?'':r.owner?(r.owner.oid===me?`<button class="btn" data-gpfc="edit">Sửa</button><button class="btn" data-gpfc="sell">Bán</button>`:''):(have?'':`<button class="btn primary" data-gpfc="buy:${r.i}:${r.price}">${fmt(r.price)}</button>`))+`</div>`).join('')}</div>
+    <p class="mnote">${have?'Bạn đã sở hữu một đội. Đội do máy điều khiển, bạn nhận thưởng sau mỗi trận.':'Chọn một đội để mua: bạn đặt tên, chọn màu áo và nhận thưởng mỗi trận đội thi đấu.'}</p>`;
+}
+function gpGuestStadium(orig){
+  const N=gpN(), H=SDV.w, host=N.hostMember(), nm=host?host.name:'chủ phòng';
+  if(modalOpen()) return;
+  if(!H||!H.fc||!H.fc.ai){ modal({kick:'Sân vận động', title:`${nm} chưa có giải bóng đá`, body:'Chủ phòng cần lập câu lạc bộ bóng đá thì giải VĐQG mới mở cho khách.', yes:'OK', alt:W.fc?'Sân của tôi':null, altFn:()=>orig('stadium')}); return; }
+  modal({kick:`Giải VĐQG · thế giới của ${nm}`, title:'Bảng xếp hạng bóng đá', html:true, body:gpStadiumHTML(), yes:'Đóng', alt:W.fc?'Sân của tôi':null, altFn:()=>orig('stadium')});
+}
+{ const _ep=enterPlace; enterPlace=function(k){ if(SDV.w&&k==='stadium'&&!hell()) return gpGuestStadium(_ep); return _ep.apply(this,arguments); }; }
+function gpBbHTML(){
+  const me=gpN().oid(), rows=sdvWith(()=>{ const B=W.bb; if(!B) return null; return bbTable().map((t,pos)=>{ const tm=bbTeam(t.i), a=t.i>0?B.ai[t.i-1]:null; return {pos:pos+1,n:tm.n,w:t.w,l:t.l,owner:a&&a.owner||null}; }); });
+  if(!rows) return '<p class="mnote">Chủ phòng chưa có giải VĐQG bóng rổ.</p>';
+  return `<div class="gplg">${rows.map(r=>`<div class="gprow"><b>${r.pos}</b><span class="gpn">${sdEsc(r.n)}${r.owner?` <small>${r.owner.oid===me?'của bạn':sdEsc(r.owner.name)} 👥</small>`:''}</span><i>${r.w}T ${r.l}B</i></div>`).join('')}</div>`;
+}
+/* biểu mẫu tên đội + màu áo */
+let GPF=null;
+function gpTeamForm(o){
+  GPF={c1:o.c1, c2:o.c2, pal:o.pal, ok:o.ok};
+  const pal=k=>`<span class="gppal" data-k="${k}">${o.pal.map(c=>`<button type="button" class="gpsw" data-gpcol="${k}:${c}" style="background:${c}" aria-pressed="${GPF[k]===c}" aria-label="Màu ${c}"></button>`).join('')}</span>`;
+  modal({kick:o.kick, title:o.title, html:true, body:`<label class="gplb">Tên đội<input id="gpTn" class="gpin" maxlength="24" autocomplete="off"></label><label class="gplb">Tên viết tắt (2–4 ký tự)<input id="gpTs" class="gpin" maxlength="4" autocomplete="off"></label><span class="gplb">Màu chính</span>${pal('c1')}<span class="gplb">Màu phụ</span>${pal('c2')}`,
+    yes:o.yes, no:'Huỷ', yesFn:()=>{ const n=gpClean($('gpTn').value,24), s=gpClean($('gpTs').value,4).toUpperCase(); if(n.length<2||s.length<2){ toast('Nhập tên đội và tên viết tắt (2–4 ký tự).'); return; } o.ok({n,short:s,c1:GPF.c1,c2:GPF.c2}); }});
+  $('gpTn').value=o.n||''; $('gpTs').value=o.short||''; }
+$('mBody').addEventListener('click',e=>{
+  const T=e.target.closest('[data-gptype]'); if(T&&GPPEND){ const P=GPPEND; GPPEND=null; $('modal').hidden=true;
+    if(W.bank<P.cost){ toast(`Cần ${fmt(P.cost)}.`); return; } gpTxNew('prop',{t:'buy', kind:'shop', lot:P.lot, type:T.dataset.gptype},P.cost); toast('Đang gửi yêu cầu mua…'); return; }
+  const C=e.target.closest('[data-gpcol]'); if(C&&GPF){ const [k,c]=C.dataset.gpcol.split(':'); GPF[k]=c; C.parentNode.querySelectorAll('.gpsw').forEach(b=>b.setAttribute('aria-pressed',b===C?'true':'false')); return; }
+  const F=e.target.closest('[data-gpfc]'); if(F){ const [a,i,pr]=F.dataset.gpfc.split(':'), N=gpN(); $('modal').hidden=true;
+    if(a==='buy'){ const price=+pr; modal({kick:'Mua đội bóng', good:true, title:`Mua đội này với ${fmt(price)}?`, body:'Đội do máy điều khiển trong giải VĐQG của chủ phòng. Bạn đặt lại tên, màu áo và nhận thưởng sau mỗi trận. Bán lại được 60% giá mua. Mỗi người chơi sở hữu một đội.', yes:W.bank>=price?`Mua ${fmt(price)}`:'Không đủ tiền', no:'Thôi',
+        yesFn:()=>{ if(W.bank<price){ toast(`Cần ${fmt(price)}.`); return; } gpTxNew('prop',{t:'fcbuy', i:+i},price); toast('Đang gửi yêu cầu mua…'); }}); return; }
+    if(a==='edit'){ const cur=sdvWith(()=>{ const F=fc(), k=(F.ai||[]).findIndex(x=>x.owner&&x.owner.oid===N.oid()); return k<0?null:F.ai[k]; }); if(!cur) return;
+      gpTeamForm({kick:'Đội bóng của bạn', title:'Sửa đội bóng', yes:'Lưu', pal:FC_PAL, n:cur.n, short:cur.short, c1:cur.c1, c2:cur.c2, ok:v=>{ gpTxNew('prop',Object.assign({t:'fcedit'},v),0); toast('Đang gửi thay đổi…'); }}); return; }
+    if(a==='sell'){ modal({kick:'Bán đội bóng', title:'Bán lại đội?', body:'Bạn được hoàn 60% giá mua, đội trở lại do máy quản lý.', yes:'Bán', no:'Thôi', yesFn:()=>{ gpTxNew('prop',{t:'fcsell'},0); toast('Đang gửi yêu cầu bán…'); }}); return; } }
+  const B=e.target.closest('[data-gpbb]'); if(B){ const a=B.dataset.gpbb, N=gpN(); $('modal').hidden=true;
+    const P=Object.values((SDV.w&&SDV.w.gprop)||{}).find(x=>x.oid===N.oid()&&x.court==='bball'); if(!P) return;
+    if(a==='league'){ modal({kick:`Giải VĐQG bóng rổ · ${(N.hostMember()||{}).name||'chủ phòng'}`, title:'Bảng xếp hạng bóng rổ', html:true, body:gpBbHTML(), yes:'Đóng'}); return; }
+    const key='lux:'+P.lot;
+    if(a==='new'){ gpTeamForm({kick:'Đội bóng rổ mới', title:'Lập đội bóng rổ', yes:'Lập đội', pal:BB_PAL, n:`${pName()} Hawks`.slice(0,24), short:'', c1:BB_PAL[1], c2:BB_PAL[2], ok:v=>{ gpTxNew('prop',Object.assign({t:'bbnew',key},v),0); toast('Đang gửi yêu cầu lập đội…'); }}); return; }
+    if(a==='edit'){ const cur=sdvWith(()=>{ const B=W.bb; return B&&P.team&&B.ai[P.team.k]; }); if(!cur) return;
+      gpTeamForm({kick:'Đội bóng rổ của bạn', title:'Sửa đội bóng rổ', yes:'Lưu', pal:BB_PAL, n:cur.n, short:cur.short, c1:cur.c1, c2:cur.c2, ok:v=>{ gpTxNew('prop',Object.assign({t:'bbedit',key},v),0); toast('Đang gửi thay đổi…'); }}); return; } }
+});
+{ const st=document.createElement('style'); st.textContent=`.gptypes{display:grid; grid-template-columns:1fr 1fr; gap:6px} .gptypes .btn{min-height:44px; font-size:13px}
+.gpacts{display:grid; gap:6px; margin-top:10px} .gpacts .btn{min-height:44px}
+.gplg{display:grid; gap:2px; max-height:46vh; overflow:auto} .gprow{display:flex; align-items:center; gap:8px; padding:6px 2px; border-bottom:1px solid rgba(255,255,255,.08); font-size:13px} .gprow b{width:20px; text-align:center} .gprow .gpn{flex:1; min-width:0} .gprow small{opacity:.7} .gprow i{font-style:normal; opacity:.85; white-space:nowrap} .gprow .btn{min-height:36px; padding:4px 10px; font-size:12.5px}
+.gplb{display:block; margin-top:10px; font-size:12.5px; opacity:.85} .gpin{display:block; width:100%; margin-top:4px; min-height:44px; padding:8px 10px; border-radius:10px; border:1px solid rgba(255,255,255,.25); background:rgba(0,0,0,.25); color:inherit; font:inherit}
+.gppal{display:flex; flex-wrap:wrap; gap:8px; margin-top:6px} .gpsw{width:36px; height:36px; border-radius:50%; border:2px solid rgba(255,255,255,.35); padding:0} .gpsw[aria-pressed=true]{border-color:#fff; box-shadow:0 0 0 3px rgba(255,211,107,.8)}`; document.head.appendChild(st); }
+
+/* ---------- v1.9.24: trạng thái chết chờ xử lý, bảng tin, reset phiên online ---------- */
+{ const _s9=start; start=function(){ const r=_s9.apply(this,arguments); try{ if(W.pendDeath&&!hell()){ const t=W.pendDeath; const go=()=>{ if(!W.pendDeath||hell()) return; if(modalOpen()||W.mode==='race'){ setTimeout(go,900); return; } deathBy(t); }; setTimeout(go,900); } }catch(e){} return r; }; }
+function socCaseSync(){ try{ if(typeof scPublicNews!=='function') return; const S=socNorm(), d=dayOf(W.clock); if(!Array.isArray(S.caseDone)) S.caseDone=[];
+  const npcs=SOC_NPC.filter(socNpcOk).filter(x=>x.tags.includes('case')); if(!npcs.length) return; let add=0;
+  scPublicNews().filter(n=>n.d>=d-1&&!S.caseDone.includes(n.id)).slice(0,3).forEach(n=>{ const r=sdRng(sdHash(S.seed+':case:'+n.id));
+    const txt=sdPick(r,[`Đọc tin "${n.title}" mà rùng mình. Mọi người tối về nhớ khoá cửa.`,`Báo Đêm vừa đưa tin: ${n.title}. Mong công an sớm làm rõ.`,`Cả xóm đang bàn tán chuyện "${n.title}". Chưa có thông tin chính thức, đừng đồn bậy nhé.`]);
+    S.feed.push({id:'c_'+n.id, a:sdPick(r,npcs).id, d, t:W.clock, txt, likes:20+Math.floor(r()*r()*600), cm:5+Math.floor(r()*60), sh:Math.floor(r()*r()*40)}); S.caseDone.push(n.id); add++; });
+  if(S.caseDone.length>60) S.caseDone=S.caseDone.slice(-60); if(add&&S.feed.length>SOC_CFG.feedCap) S.feed=S.feed.slice(-SOC_CFG.feedCap); }catch(e){ console.error(e); } }
+{ const _scn=scNews; scNews=function(){ const r=_scn.apply(this,arguments); socCaseSync(); return r; }; }
+
+/* =========================================================
+   v1.9.25 · THỜI GIAN ONLINE
+   - Bản đồ online chạy theo đồng hồ chủ phòng; khách thấy giờ của chủ phòng khi đang ở bản đồ.
+   - Thời gian riêng của khách (làm việc, đua, chơi bài...) chỉ tính trong save của khách, không đổi bản đồ.
+   - Ngủ 7 tiếng khi có từ 2 người trong phòng cần cả phòng đồng ý; đủ phiếu thì mọi máy cùng ngủ.
+   ========================================================= */
+const SLP={vote:null, lastClk:0, go:false, tm:null, mine:false, mt:null};
+const slpN=()=>window.SDNet;
+const slpBusy=()=>hell()||W.mode==='prison'||(W.mode==='race'&&RC.on);
+const slpMap=()=>['map','map0','map2','map3','map4','map5'].includes(W.mode);
+document.addEventListener('click',e=>{
+  const b=e.target&&e.target.closest&&e.target.closest('#sleepBtn'); if(!b) return;
+  if(SLP.go){ SLP.go=false; return; }
+  const N=slpN(); if(!N||!N.inRoom()||N.members().length<2||hell()) return;
+  e.stopImmediatePropagation(); e.preventDefault(); if(modalOpen()) return;
+  if(SLP.mine){ toast('Đang chờ cả phòng đồng ý ngủ…'); return; }
+  SLP.mine=true; clearTimeout(SLP.mt); SLP.mt=setTimeout(()=>{ SLP.mine=false; },40000);
+  N.send('slp',{t:'req'}); toast('Đã hỏi cả phòng. Cần mọi người đồng ý mới ngủ chung 7 tiếng.'); },true);
+function slpHostRecv(d,from){
+  const N=slpN(), m=N.member(from); if(!m) return;
+  if(d.t==='req'){
+    if(SLP.vote){ N.to(from,'slp',{t:'no', why:'Phòng đang có một cuộc bỏ phiếu ngủ khác.'}); return; }
+    const others=N.members().filter(x=>x.id!==from).map(x=>x.id);
+    if(!others.length){ N.to(from,'slp',{t:'go'}); return; }
+    const V=SLP.vote={id:Date.now().toString(36), by:from, name:m.name, need:new Set(others), yes:new Set()};
+    V.tm=setTimeout(()=>slpEnd(false,'Hết thời gian, có người chưa trả lời.'),35000);
+    N.bcast('slp',{t:'ask', id:V.id, name:m.name},from); return; }
+  if(d.t==='vote'){ const V=SLP.vote; if(!V||d.id!==V.id||!V.need.has(from)) return;
+    if(!d.ok){ slpEnd(false,`${m.name} chưa muốn ngủ.`); return; }
+    V.yes.add(from); if(V.yes.size>=V.need.size) slpEnd(true); }
+}
+function slpEnd(ok,why){ const V=SLP.vote, N=slpN(); if(!V||!N) return; clearTimeout(V.tm); SLP.vote=null;
+  if(ok) N.bcast('slp',{t:'go', id:V.id}); else N.bcast('slp',{t:'no', id:V.id, why}); }
+function slpClient(d){
+  const N=slpN();
+  if(d.t==='ask'){
+    const vote=ok=>N.send('slp',{t:'vote', id:d.id, ok});
+    if(slpBusy()){ vote(false); return; }
+    const show=()=>modal({kick:'Chơi cùng', title:`${d.name} muốn cả phòng ngủ 7 tiếng`, body:'Giờ trên bản đồ online chạy theo chủ phòng. Ngủ chung cần mọi người đồng ý: nếu đồng ý, mọi máy cùng tua 7 tiếng và hồi thể lực.', yes:'Đồng ý ngủ', no:'Chưa muốn', yesFn:()=>vote(true), noFn:()=>vote(false)});
+    if(modalOpen()){ setTimeout(()=>{ if(!SLP.mine&&!modalOpen()&&!slpBusy()) show(); else vote(false); },1500); } else show();
+    return; }
+  if(d.t==='go'){ SLP.mine=false; clearTimeout(SLP.mt); if(slpBusy()) return; $('modal').hidden=true; SLP.go=true; $('sleepBtn').click(); SLP.go=false; return; }
+  if(d.t==='no'){ SLP.mine=false; clearTimeout(SLP.mt); if(/ngủ 7 tiếng/.test($('mTitle').textContent)&&!$('modal').hidden) $('modal').hidden=true; toast(d.why||'Cả phòng chưa đồng ý ngủ.'); }
+}
+function slpClkSend(force){ const N=slpN(); if(!N||!N.inRoom()||!N.isHost()||N.members().length<2) return; const now=Date.now();
+  if(!force&&now-SLP.lastClk<1500){ if(!SLP.tm) SLP.tm=setTimeout(()=>{ SLP.tm=null; slpClkSend(true); },1600); return; }
+  SLP.lastClk=now; N.bcast('world',{t:'clk', c:W.clock},N.me()); }
+{ const _pt=passTime; passTime=function(){ const r=_pt.apply(this,arguments); try{ if(!SDV.depth) slpClkSend(); }catch(e){} return r; }; }
+{ const _uc=updateClock; updateClock=function(){ const r=_uc.apply(this,arguments);
+    try{ const N=slpN(); if(N&&N.inRoom()&&!N.isHost()&&SDV.w&&slpMap()){ const sp=$('gClock').querySelector('span'); if(sp) sp.textContent=`Ngày ${dayOf(SDV.w.clock)} · ${hhmm(SDV.w.clock)} · giờ chủ phòng`; } }catch(e){} return r; }; }
+{ const _rm2=renderMap; renderMap=function(){ const r=_rm2.apply(this,arguments); try{ updateClock(); }catch(e){} return r; }; }
+function slpInit(){ const N=slpN(); if(!N||N._slp) return; N._slp=true;
+  N.on('slp',(d,from)=>{ if(!d) return; if(d.t==='req'||d.t==='vote'){ if(N.isHost()) slpHostRecv(d,from); return; } slpClient(d); });
+  N.on('world',d=>{ if(N.isHost()||!d||d.t!=='clk'||!SDV.w) return; const o=SDV.w.clock, nb=h=>h>=19||h<6; SDV.w.clock=+d.c||o;
+    const h0=Math.floor(((o%1440)+1440)%1440/60), h1=Math.floor(((SDV.w.clock%1440)+1440)%1440/60); updateClock(); if(nb(h0)!==nb(h1)||dayOf(o)!==dayOf(SDV.w.clock)) sdRemount(); });
+  N.sub(ev=>{ if(ev==='leave'&&N.isHost()&&SLP.vote) slpEnd(false,'Có người rời phòng.'); if(ev==='closed'||ev==='left'){ SLP.mine=false; if(SLP.vote){ clearTimeout(SLP.vote.tm); SLP.vote=null; } } if(ev==='join'&&N.isHost()) setTimeout(()=>slpClkSend(true),500); }); }
+window.addEventListener('load',slpInit);
 
 if(window.claude&&window.claude.hot&&window.claude.hot.snapshot) window.claude.hot.snapshot(()=>({W, solHist:solHist.slice(-50)}));
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
