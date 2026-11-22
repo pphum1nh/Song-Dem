@@ -14,7 +14,7 @@ const SCALE = 1.88; // mô hình gốc cao ~0,95 → ~1,78 m
 const loader = new GLTFLoader();
 const cache = new Map();
 export function preload(name) {
-  if (!cache.has(name)) cache.set(name, loader.loadAsync(`assets/chars/${name}.glb`));
+  if (!cache.has(name)) cache.set(name, loader.loadAsync(`assets/chars/${name}.json`));
   return cache.get(name);
 }
 

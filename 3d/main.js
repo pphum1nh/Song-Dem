@@ -44,7 +44,7 @@ try { saved = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch (_) 
 const charName = saved && CHARACTERS[saved.c] ? saved.c : 'Businessman';
 preload(charName);
 loadingText.textContent = 'Đang tải thành phố…';
-const kit = await new GLTFLoader().loadAsync('assets/citykit.glb');
+const kit = await new GLTFLoader().loadAsync('assets/citykit.json');
 const world = buildWorld(scene, kit);
 const sky = createSky(scene);
 const player = new Player(scene);
