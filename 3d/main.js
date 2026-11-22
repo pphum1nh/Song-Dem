@@ -8,6 +8,7 @@ import { createSky } from './sky.js';
 import { Player } from './player.js';
 import { createLife } from './life.js';
 import { CHARACTERS, preload } from './character.js';
+import { createMenu } from './menu.js';
 
 const SAVE_KEY = 'songdem3d.v2';
 const $ = (id) => document.getElementById(id);
@@ -21,7 +22,7 @@ renderer.toneMappingExposure = 1.15;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 
 const scene = new THREE.Scene();
-scene.fog = new THREE.Fog(0x2b1340, 60, 250);
+scene.fog = new THREE.Fog(0x2b1340, 55, 190);
 const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 700);
 // Môi trường phản chiếu để vàng và kính trông thật (tạo một lần lúc tải)
 const pmrem = new THREE.PMREMGenerator(renderer);
@@ -37,39 +38,6 @@ function resize() {
 }
 addEventListener('resize', resize);
 resize();
-
-const loadingText = $('loading');
-let saved = null;
-try { saved = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch (_) {}
-const charName = saved && CHARACTERS[saved.c] ? saved.c : 'Businessman';
-preload(charName);
-loadingText.textContent = 'Đang tải thành phố…';
-const kit = await new GLTFLoader().loadAsync('assets/citykit.json');
-const world = buildWorld(scene, kit);
-const sky = createSky(scene);
-const player = new Player(scene);
-const clock = new GameClock(21 * 60);
-loadingText.textContent = 'Đang tải nhân vật…';
-await player.setCharacter(charName);
-const life = await createLife(scene, kit, charName);
-
-// ---------- Lưu / tải ----------
-const home = world.interactables.find((i) => i.id === 'house');
-player.position.set(home.x, groundHeight(home.x, home.z + 2.5), home.z + 2.5);
-player.heading = 0;
-if (saved && Number.isFinite(saved.t)) {
-  clock.totalMinutes = saved.t;
-  if (Number.isFinite(saved.x) && Number.isFinite(saved.z)) player.position.set(saved.x, groundHeight(saved.x, saved.z), saved.z);
-  if (Number.isFinite(saved.h)) player.heading = saved.h;
-}
-function save() {
-  try {
-    localStorage.setItem(SAVE_KEY, JSON.stringify({ t: clock.totalMinutes, x: player.position.x, z: player.position.z, h: player.heading, c: player.charName }));
-  } catch (_) {}
-}
-setInterval(save, 3000);
-addEventListener('pagehide', save);
-document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
 
 // ---------- Camera ----------
 const cam = { yaw: 0, pitch: 0.42, dist: 8.5, curDist: 8.5 };
@@ -163,7 +131,7 @@ function enter(target) {
   }
 }
 ui.action.addEventListener('click', () => enter(nearby));
-$('who').addEventListener('click', () => {
+function pickCharacter() {
   openModal('Chọn nhân vật', 'Nhân vật: bộ "Vocations and Uniforms" (CC BY-SA). Thành phố: KayKit City Builder Bits của Kay Lousberg (CC0).', [
     ...Object.entries(CHARACTERS).map(([key, label]) => ({
       label: (key === player.charName ? '✓ ' : '') + label,
@@ -172,11 +140,23 @@ $('who').addEventListener('click', () => {
     { label: 'Đóng', run: closeModal },
   ]);
   ui.modalActions.classList.add('grid2');
-});
+}
+$('menu').addEventListener('click', openMenu);
+async function openMenu() {
+  if (menu.open || modalOpen) return;
+  paused = true; input.setEnabled(false); save();
+  const m = await menu.choose(true);
+  if (m === 'new') {
+    await menu.curtain('new', async (step) => { step(1, 0.6); clock.totalMinutes = 21 * 60; goHome(); save(); });
+  } else menu.hide();
+  paused = false; input.setEnabled(true);
+  if (m === 'who') pickCharacter();
+}
 input.onAction = () => { if (modalOpen) return; enter(nearby); };
-addEventListener('keydown', (e) => { if (e.code === 'Escape' && modalOpen) closeModal(); });
-
-setTimeout(() => ui.hint.classList.add('gone'), 7000);
+addEventListener('keydown', (e) => {
+  if (e.code !== 'Escape') return;
+  if (modalOpen) closeModal(); else if (!menu.open && player) openMenu();
+});
 
 // ---------- Vòng lặp ----------
 let last = performance.now();
@@ -189,7 +169,7 @@ function frame(now) {
   const dt = Math.min(realDt, 1 / 20);
   elapsed += dt;
 
-  clock.update(realDt);
+  if (!paused) clock.update(realDt);
 
   const look = input.consumeLook();
   cam.yaw -= look.dx * 0.0065;
@@ -225,8 +205,73 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 
-document.body.classList.add('ready');
-requestAnimationFrame((t) => { last = t; frame(t); });
+let paused = false;
+function startLoop() {
+  document.body.classList.add('ready');
+  requestAnimationFrame((t) => { last = t; frame(t); });
+}
 
 // Móc kiểm thử (dùng cho chụp màn hình tự động)
-window.__songdem = { renderer, scene, life, clock, player, cam, setMinute: (m) => { clock.totalMinutes = Math.floor(clock.totalMinutes / 1440) * 1440 + m; }, PITCH };
+window.__songdem = { renderer, scene, get life() { return life; }, get clock() { return clock; }, get player() { return player; }, cam, setMinute: (m) => { clock.totalMinutes = Math.floor(clock.totalMinutes / 1440) * 1440 + m; }, PITCH };
+
+// ---------- Menu chính → rèm tải → vào game ----------
+const has2D = /\/3d\/(index\.html)?$/.test(location.pathname);
+let saved = null;
+try { saved = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch (_) {}
+const charName = saved && CHARACTERS[saved.c] ? saved.c : 'Businessman';
+// Bắt đầu tải ngay khi mở trang, trong lúc người chơi còn ở menu
+const kitPromise = new GLTFLoader().loadAsync('assets/citykit.json');
+preload(charName).catch(() => {});
+kitPromise.catch(() => {});
+
+let world, sky, player, clock, life;
+const two = (n) => String(n).padStart(2, '0');
+const summaryOf = (t) => `Ngày ${Math.floor(t / 1440) + 1} · ${two(Math.floor((t % 1440) / 60))}:${two(Math.floor(t % 60))}`;
+const menu = createMenu({
+  has2D,
+  summary: () => (clock ? summaryOf(clock.totalMinutes) : saved && Number.isFinite(saved.t) ? summaryOf(saved.t) : ''),
+});
+$('loading').remove();
+
+const first = await menu.choose();
+if (first === 'new') { saved = null; try { localStorage.removeItem(SAVE_KEY); } catch (_) {} }
+
+function goHome() {
+  const home = world.interactables.find((i) => i.id === 'house');
+  player.position.set(home.x, groundHeight(home.x, home.z + 2.5), home.z + 2.5);
+  player.heading = 0;
+  cam.yaw = 0;
+}
+function save() {
+  if (!clock) return;
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ t: clock.totalMinutes, x: player.position.x, z: player.position.z, h: player.heading, c: player.charName }));
+  } catch (_) {}
+}
+
+await menu.curtain(first, async (step) => {
+  step(0, 0.15);
+  const kit = await kitPromise;
+  step(1, 0.45);
+  world = buildWorld(scene, kit);
+  sky = createSky(scene);
+  clock = new GameClock(21 * 60);
+  player = new Player(scene);
+  await player.setCharacter(charName);
+  step(2, 0.7);
+  life = await createLife(scene, kit, charName);
+  goHome();
+  if (saved && Number.isFinite(saved.t)) {
+    clock.totalMinutes = saved.t;
+    if (Number.isFinite(saved.x) && Number.isFinite(saved.z)) player.position.set(saved.x, groundHeight(saved.x, saved.z), saved.z);
+    if (Number.isFinite(saved.h)) player.heading = saved.h;
+  }
+  step(3, 0.9);
+  startLoop();
+  await new Promise((r) => setTimeout(r, 120)); // vẽ vài khung để shader biên dịch sau rèm
+});
+setTimeout(() => ui.hint.classList.add('gone'), 7000);
+setInterval(save, 3000);
+addEventListener('pagehide', save);
+document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
+

@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 
 export const S = 6;                       // 1 đơn vị KayKit = 6 m (một ô 2×2 = 12 m)
-export const TILE = 12, BLOCK = 36, ROAD = 12, PITCH = BLOCK + ROAD, GRID = 2;
+export const TILE = 12, BLOCK = 36, ROAD = 12, PITCH = BLOCK + ROAD, GRID = 1; // 3×3 khối đi lại được
 export const SIDEWALK = 0.6, ROADY = 0.44;
 export const LIMIT = (GRID + 0.5) * PITCH + ROAD / 2 - 1;
 const RING = GRID + 1;                    // vòng khối nhà phía ngoài, chỉ để nhìn
@@ -73,14 +73,22 @@ function windowMask(color) {
 function partsOf(kit, name) {
   const root = kit.getObjectByName(name);
   if (!root) throw new Error('Thiếu mô hình ' + name);
-  root.updateMatrixWorld(true);
-  // Giữ nguyên xoay/co giãn của chính mô hình gốc, chỉ bỏ phần dịch chuyển
-  const toOrigin = new THREE.Matrix4().makeTranslation(-root.position.x, -root.position.y, -root.position.z);
+  // Mô hình đã nén (KHR_mesh_quantization): toạ độ là số nguyên chuẩn hoá, còn tỉ lệ và độ lệch
+  // nằm trong biến đổi của node. Phải giữ nguyên biến đổi đó và đổi dữ liệu sang số thực trước khi nướng,
+  // nếu không toà nhà sẽ bị lún nửa xuống đất và bị cắt giá trị.
+  kit.updateMatrixWorld(true);
   const parts = [];
   root.traverse((o) => {
     if (!o.isMesh) return;
     const g = o.geometry.clone();
-    g.applyMatrix4(new THREE.Matrix4().multiplyMatrices(toOrigin, o.matrixWorld));
+    for (const key of ['position', 'normal', 'uv']) {
+      const a = g.getAttribute(key);
+      if (!a || a.array instanceof Float32Array) continue;
+      const f = new Float32Array(a.count * a.itemSize);
+      for (let i = 0; i < a.count; i++) for (let c = 0; c < a.itemSize; c++) f[i * a.itemSize + c] = a.getComponent(i, c);
+      g.setAttribute(key, new THREE.BufferAttribute(f, a.itemSize));
+    }
+    g.applyMatrix4(o.matrixWorld);
     parts.push({ geometry: g, material: o.material });
   });
   return parts;
@@ -196,9 +204,11 @@ export function buildWorld(scene, kitGltf) {
       const nx = corner ? 0 : tx, nz = corner ? tz : tz;
       // Khối ngoài cùng chỉ dựng các ô nhìn vào thành phố
       if (ring) {
-        const facesIn = (Math.abs(i) > GRID && Math.sign(tx) === -Math.sign(i) && tz === 0) || (Math.abs(j) > GRID && Math.sign(tz) === -Math.sign(j) && tx === 0);
-        if (!facesIn) continue;
-        const rot = Math.atan2(tx, tz);
+        // Chỉ dựng dãy nhà nhìn vào thành phố (bỏ các khối ở góc chéo)
+        if (Math.abs(i) > GRID && Math.abs(j) > GRID) continue;
+        const inX = Math.abs(i) > GRID, sx = -Math.sign(i), sz = -Math.sign(j);
+        if (inX ? tx !== sx : tz !== sz) continue;
+        const rot = inX ? Math.atan2(sx, 0) : Math.atan2(0, sz);
         place('base', x, 0, z);
         addBuilding(pick(all), x, z, rot, false);
         continue;

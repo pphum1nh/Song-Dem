@@ -15,8 +15,8 @@ Người chơi đi từ nhà tới Sòng Đêm trong khi đồng hồ tự chạ
 
 ## Bản đồ
 - Dựng từ bộ KayKit City Builder Bits trên lưới ô 12 m: khối nhà 3×3 ô (36 m), đường rộng 1 ô.
-- Lưới 5×5 khối đi lại được, thêm một vòng tòa nhà bên ngoài để nhìn cho kín.
-- Có xe chạy vòng (lái bên phải, dừng khi người chơi đứng trước), xe đỗ ven đường và 10 người đi bộ trên vỉa hè.
+- Lưới 3×3 khối đi lại được (gọn để tải nhanh), thêm dãy nhà bên kia đường vành đai để nhìn cho kín.
+- Có xe chạy vòng (lái bên phải, dừng khi người chơi đứng trước), xe đỗ ven đường và 8 người đi bộ (4 kiểu) trên vỉa hè.
 - Khối giữa: **Sòng Đêm**, có biển neon và đồng xu vàng xoay trên mái làm mốc.
 - Khối phía tây: **Nhà** có vườn, hàng rào và lối đi. Người chơi bắt đầu ở cửa nhà.
 - Khối phía đông: công viên có đài phun nước.
@@ -26,6 +26,11 @@ Người chơi đi từ nhà tới Sòng Đêm trong khi đồng hồ tự chạ
 ## Nhân vật
 - 12 nhân vật từ bộ Vocations and Uniforms, chọn bằng nút góc trái trên.
 - Mô hình gốc ở tư thế chữ T và không có animation, nên dáng đứng, đi, chạy được tạo bằng cách xoay xương trong `character.js`.
+
+## Menu và màn hình tải
+- Giống bản 2D: menu chính (Tiếp tục / Chơi mới / Mở bản 2D) và rèm tải kéo lên, font tiêu đề Bungee lấy từ bản 2D.
+- Tài nguyên bắt đầu tải ngay khi mở trang, trong lúc người chơi còn ở menu.
+- Trong game: nút ☰ hoặc phím Esc mở menu tạm dừng (dừng đồng hồ), có thêm Đổi nhân vật.
 
 ## Thời gian
 - `20 giây thật = 1 phút trong game`. 1 giờ game bằng 20 phút thật.

@@ -58,7 +58,6 @@ export async function createLife(scene, kitGltf, playerName) {
     offsetPath(roundedRect(0, 0, PITCH / 2, PITCH / 2, 8, 1), 1.9),
     offsetPath(roundedRect(0, 0, PITCH / 2, PITCH / 2, 8, -1), 1.9),
     offsetPath(roundedRect(0, 0, PITCH * 1.5, PITCH * 1.5, 8, 1), 1.9),
-    offsetPath(roundedRect(0, 0, PITCH * 1.5, PITCH * 1.5, 8, -1), 1.9),
   ];
   const carKinds = ['car_sedan', 'car_taxi', 'car_hatchback', 'car_stationwagon', 'car_police', 'car_taxi'];
   const lightTex = radialTex('rgba(255,236,190,0.85)', 'rgba(255,236,190,0)');
@@ -87,8 +86,9 @@ export async function createLife(scene, kitGltf, playerName) {
   });
 
   // ---------- Người đi bộ ----------
-  const names = Object.keys(CHARACTERS).filter((n) => n !== playerName);
-  const blocks = [[-1, -1], [0, -1], [1, -1], [-1, 1], [0, 1], [1, 1], [0, 0], [-2, 0], [2, 0], [1, 0]];
+  // Chỉ dùng 4 kiểu người đi bộ để giảm dung lượng tải
+  const names = ['Businesswoman', 'Police', 'StudentF', 'Nurse', 'BaseMale'].filter((n) => n !== playerName).slice(0, 4);
+  const blocks = [[-1, -1], [0, -1], [1, -1], [-1, 1], [0, 1], [1, 1], [0, 0], [1, 0]];
   const h = BLOCK / 2 - 0.85;
   const jobs = blocks.map(async ([i, j], k) => {
     const c = await createCharacter(names[k % names.length]);

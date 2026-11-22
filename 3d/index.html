@@ -10,6 +10,7 @@
 <link rel="apple-touch-icon" href="../icon-180.png">
 <link rel="icon" type="image/png" href="../icon-192.png">
 <title>Sòng Đêm 3D</title>
+<link rel="stylesheet" href="fonts.css">
 <style>
   :root {
     --bg: #12070e;
@@ -53,10 +54,10 @@
   #speed { position: fixed; z-index: 2; top: calc(var(--sat) + 12px); right: calc(var(--sar) + 12px);
     width: 48px; height: 48px; border-radius: 12px; border: 1px solid var(--border);
     background: var(--panel); color: var(--text); font-weight: 800; font-size: 15px; font-variant-numeric: tabular-nums; }
-  #who { position: fixed; z-index: 2; top: calc(var(--sat) + 12px); left: calc(var(--sal) + 12px);
+  #menu { position: fixed; z-index: 2; top: calc(var(--sat) + 12px); left: calc(var(--sal) + 12px);
     width: 48px; height: 48px; border-radius: 12px; border: 1px solid var(--border);
     background: var(--panel); color: var(--text); display: grid; place-items: center; }
-  #who svg { width: 22px; height: 22px; }
+  #menu svg { width: 22px; height: 22px; }
   .actions.grid2 { grid-template-columns: 1fr 1fr; max-height: 60vh; overflow: auto; }
   .actions.grid2 .btn:last-child { grid-column: 1 / -1; }
   #speed[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
@@ -101,17 +102,92 @@
   .btn { min-height: 50px; border-radius: 12px; border: 1px solid var(--border); background: var(--panel-2);
     color: var(--text); font: 700 16px/1 inherit; font-family: inherit; }
   .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
-  .btn:focus-visible, #action:focus-visible, #speed:focus-visible, #who:focus-visible { outline: 3px solid var(--pink); outline-offset: 2px; }
+  .btn:focus-visible, #action:focus-visible, #speed:focus-visible, #menu:focus-visible { outline: 3px solid var(--pink); outline-offset: 2px; }
   @keyframes rise { from { transform: translateY(16px); opacity: 0; } to { transform: none; opacity: 1; } }
 
   #fade { position: fixed; inset: 0; z-index: 6; background: #000; opacity: 0; pointer-events: none; transition: opacity .4s ease; }
   #fade.on { opacity: 1; }
 
-  #loading { position: fixed; inset: 0; z-index: 7; display: grid; place-items: center; background: var(--bg); color: var(--muted); font-weight: 600; }
+  #loading { position: fixed; inset: 0; z-index: 7; display: flex; align-items: center; justify-content: center; background: var(--bg); color: var(--muted); font-weight: 600; }
   body.ready #loading { display: none; }
   #error { position: fixed; left: 12px; right: 12px; bottom: calc(var(--sab) + 12px); z-index: 8; padding: 12px 14px;
     background: #3a0d1c; border: 1px solid #7a2340; border-radius: 12px; color: #ffd7e2; font-size: 13px; }
 
+  /* ---- Menu chính và rèm tải (lấy từ bản 2D) ---- */
+  :root { --f-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; --f-bungee: "Bungee", "Arial Black", Impact, sans-serif; }
+#sdm{position:fixed;inset:0;z-index:2147483000;display:flex;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  background:radial-gradient(120% 70% at 50% 0%,#5c183a 0%,#2a0f1f 48%,#12070e 100%);color:#f5efe4;font-family:var(--f-body);
+  padding:calc(28px + env(safe-area-inset-top,0px)) 16px calc(24px + env(safe-area-inset-bottom,0px))}
+#sdm[hidden]{display:none!important}
+html.sdm-on,html.sdm-on body{overflow:hidden}
+.sdm-col{width:min(360px,100%);margin:auto;display:flex;flex-direction:column;gap:24px}
+.sdm-sign{text-align:center}
+.sdm-kick{display:block;font:600 11px/1 var(--f-body);letter-spacing:.24em;text-transform:uppercase;color:#bfaea6}
+.sdm-title{margin:12px 0 6px;font:400 clamp(44px,14vw,60px)/1 var(--f-bungee);color:#ffe3a1;letter-spacing:.02em;
+  text-shadow:0 0 6px #ecc15e,0 0 18px rgba(236,193,94,.7),0 0 44px rgba(255,110,80,.45);animation:sdmFlick 7s infinite}
+.sdm-suits{font-size:15px;letter-spacing:.6em;color:rgba(236,193,94,.55);padding-left:.6em}
+@keyframes sdmFlick{0%,90%,100%{opacity:1}91%{opacity:.5}92%{opacity:1}95%{opacity:.72}96%{opacity:1}}
+@media (prefers-reduced-motion:reduce){.sdm-title{animation:none}}
+.sdm-list,.sdm-rows{display:flex;flex-direction:column;gap:10px}
+.sdm-rows{gap:6px}
+.sdm-btn,.sdm-row{all:unset;box-sizing:border-box;display:flex;flex-direction:column;gap:3px;width:100%;cursor:pointer;color:#f5efe4;
+  background:rgba(255,255,255,.06);border:1px solid rgba(232,189,92,.35);border-radius:14px;padding:14px 18px;
+  transition:transform .12s ease,background-color .12s ease;-webkit-tap-highlight-color:transparent}
+.sdm-row{padding:10px 14px;border-radius:12px;border-color:rgba(255,255,255,.12)}
+.sdm-btn b{font:700 17px/1.2 var(--f-body)}
+.sdm-row b{font:600 14.5px/1.25 var(--f-body)}
+.sdm-btn small,.sdm-row small{font:400 12.5px/1.35 var(--f-body);color:#bfaea6}
+.sdm-btn:hover,.sdm-row:hover{background:rgba(255,255,255,.1)}
+.sdm-btn:active,.sdm-row:active{transform:scale(.98)}
+.sdm-btn:focus-visible,.sdm-row:focus-visible,.sdm-back:focus-visible{outline:2px solid #ecc15e;outline-offset:2px}
+.sdm-btn.gold{background:linear-gradient(180deg,#f6d77c,#e2ae46);border-color:#f6d77c;color:#2a1d05;box-shadow:0 8px 26px rgba(236,193,94,.22)}
+.sdm-btn.gold small{color:#5a4210}
+.sdm-btn.gold:hover{background:linear-gradient(180deg,#f9df90,#e8b852)}
+.sdm-btn.dim{border-color:rgba(255,255,255,.14)}
+.sdm-panel{background:rgba(18,7,14,.62);border:1px solid rgba(232,189,92,.3);border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:10px}
+.sdm-panel h2{margin:0 0 2px;font:400 22px/1.15 var(--f-bungee);color:#ffe3a1}
+.sdm-panel h3{margin:10px 0 0;font:600 11px/1 var(--f-body);letter-spacing:.16em;text-transform:uppercase;color:#bfaea6}
+.sdm-panel p{margin:0;font-size:14px;line-height:1.5;color:#e9dfd6}
+.sdm-panel p b{color:#ffe3a1}
+.sdm-empty{color:#bfaea6!important;font-size:13px!important}
+.sdm-code{box-sizing:border-box;width:100%;min-height:72px;resize:vertical;border-radius:12px;border:1px solid rgba(255,255,255,.18);
+  background:rgba(0,0,0,.35);color:#f5efe4;padding:10px 12px;font:13px/1.4 ui-monospace,Consolas,monospace}
+.sdm-code:focus{outline:2px solid #ecc15e;outline-offset:1px}
+.sdm-msg{color:#ff9f9a!important;font-size:13px!important;margin:0;text-align:center}
+.sdm-msg.ok{color:#f4d272!important}
+.sdm-msg:empty{display:none}
+.sdm-back{all:unset;cursor:pointer;align-self:flex-start;padding:8px 2px;color:#ecc15e;font:600 14px/1 var(--f-body)}
+.sdm-two{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
+.sdm-two .sdm-btn{align-items:center;text-align:center}
+.sdm-foot{margin:0;text-align:center;font-size:11.5px;color:rgba(191,174,166,.7)}
+/* ---- before the player picks: game world not shown ---- */
+/* ---- loading curtain ---- */
+#sdl{position:fixed;inset:0;z-index:2147483100;display:flex;color:#f5efe4;font-family:var(--f-body);
+  background:radial-gradient(120% 70% at 50% 0%,#5c183a 0%,#2a0f1f 48%,#12070e 100%);
+  padding:calc(28px + env(safe-area-inset-top,0px)) 24px calc(24px + env(safe-area-inset-bottom,0px));
+  transform:translateY(0);transition:transform .8s cubic-bezier(.76,0,.24,1);will-change:transform}
+#sdl[hidden]{display:none!important}
+#sdl.up{transform:translateY(-100%)}
+#sdl.up .sdl-col{opacity:0;transform:translateY(-24px);transition:opacity .35s ease,transform .5s ease}
+.sdl-col{width:min(340px,100%);margin:auto;display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px}
+.sdl-title{margin:0;font:400 clamp(40px,12vw,54px)/1 var(--f-bungee);color:#ffe3a1;letter-spacing:.02em;
+  text-shadow:0 0 6px #ecc15e,0 0 18px rgba(236,193,94,.7),0 0 44px rgba(255,110,80,.45)}
+.sdl-suits{font-size:14px;letter-spacing:.6em;padding-left:.6em;color:rgba(236,193,94,.55)}
+.sdl-suits{animation:sdlPulse 1.4s ease-in-out infinite}
+@keyframes sdlPulse{0%,100%{opacity:.45}50%{opacity:1}}
+.sdl-step{margin:18px 0 0;font:600 15px/1.3 var(--f-body);color:#f5efe4;min-height:1.3em}
+.sdl-bar{width:100%;height:6px;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden;box-shadow:inset 0 0 0 1px rgba(232,189,92,.25)}
+.sdl-bar i{display:block;height:100%;width:0;border-radius:inherit;background:linear-gradient(90deg,#e2ae46,#f6d77c);box-shadow:0 0 12px rgba(236,193,94,.6)}
+.sdl-tip{margin:6px 0 0;font:400 13px/1.5 var(--f-body);color:#bfaea6;max-width:32ch}
+/* neon lip on the bottom edge of the curtain while it lifts */
+.sdl-edge{position:absolute;left:0;right:0;bottom:0;height:3px;background:linear-gradient(90deg,transparent,#f6d77c 20%,#ff8a6b 50%,#f6d77c 80%,transparent);
+  box-shadow:0 0 14px rgba(246,215,124,.9),0 0 34px rgba(255,138,107,.55)}
+/* map rises into place under the curtain */
+@media (prefers-reduced-motion:reduce){
+  #sdl{transition:opacity .4s ease} #sdl.up{transform:none;opacity:0}
+}
+  #loading { flex-direction: column; gap: 14px; background: radial-gradient(120% 70% at 50% 0%,#5c183a 0%,#2a0f1f 48%,#12070e 100%); }
+  #loading .sdl-title { font-size: clamp(40px,12vw,54px); }
   @media (prefers-reduced-motion: reduce) {
     .sheet { animation: none; } #fade, #hint, #joy { transition: none; }
   }
@@ -125,7 +201,7 @@
   <span id="clock-time">21:00</span>
   <span id="clock-day">Ngày 1</span>
 </div>
-<button id="who" type="button" aria-label="Chọn nhân vật" title="Chọn nhân vật"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 21a8 8 0 0 1 16 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+<button id="menu" type="button" aria-label="Mở menu" title="Menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
 <button id="speed" type="button" aria-pressed="false" aria-label="Tốc độ thời gian" title="Tua nhanh thời gian">×1</button>
 <div id="hint" class="hud"><b>Kéo bên trái</b> để đi, đẩy hết cỡ để chạy · <b>Kéo bên phải</b> để xoay. Sòng Đêm ở phía đông, theo đồng xu vàng.</div>
 
@@ -145,7 +221,7 @@
   </div>
 </div>
 <div id="fade"></div>
-<div id="loading">Đang tải…</div>
+<div id="loading" role="status"><h1 class="sdl-title">SÒNG ĐÊM</h1><div class="sdl-suits" aria-hidden="true">♠&#xFE0E;♥&#xFE0E;♦&#xFE0E;♣&#xFE0E;</div></div>
 
 <script>
   window.addEventListener('error', function (e) {
