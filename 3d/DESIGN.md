@@ -1,0 +1,32 @@
+# Sòng Đêm 3D: bản thử
+
+Một lát cắt nhỏ của Sòng Đêm chuyển sang 3D cho điện thoại. Chạy thẳng trên GitHub Pages, không cần build.
+
+## Design brief
+- **Lời hứa:** đi dạo thành phố đêm của Sòng Đêm, từ nhà mình tới sòng bạc, thời gian trôi liên tục.
+- **Cảm giác:** thành phố đêm ấm, neon tím hồng và vàng, nhẹ nhàng, không áp lực.
+- **Động từ chính:** đi bộ hoặc chạy. **Phụ:** xoay camera, vào nhà, vào casino, ngủ hoặc nghỉ để tua giờ.
+- **Lặp lại mỗi 5–30 giây:** di chuyển giữa các khu nhà, nhìn đồng hồ, tới cửa thì hiện nút hành động.
+- **Thay đổi sau 1–5 phút:** đồng hồ trong game chạy 1 phút game mỗi 20 giây thật, trời chuyển từ đêm sang sáng.
+- **Ngoài phạm vi bản thử:** tiền, chơi bài bên trong casino, xe, online, nhiệm vụ.
+
+## Core loop (bản thử)
+Người chơi đi từ nhà tới Sòng Đêm trong khi đồng hồ tự chạy. Nhà cho phép ngủ tới 7:00 hoặc nghỉ 1 giờ, làm thay đổi trạng thái đồng hồ và ánh sáng. Casino hiện thông báo bản thử.
+
+## Bản đồ
+- Lưới 5×5 khối nhà, mỗi khối 40 m, đường rộng 12 m.
+- Khối giữa: **Sòng Đêm**, có biển neon và đồng xu vàng xoay trên mái làm mốc.
+- Khối phía tây: **Nhà** có vườn, hàng rào và lối đi. Người chơi bắt đầu ở cửa nhà.
+- Khối phía đông: công viên có đài phun nước.
+- Các khối còn lại: cao ốc sinh ngẫu nhiên có hạt giống cố định, cửa sổ sáng về đêm.
+- Vòng cao ốc xa làm đường chân trời. Sương mù giấu mép bản đồ.
+
+## Thời gian
+- `20 giây thật = 1 phút trong game`. 1 giờ game bằng 20 phút thật.
+- Bắt đầu lúc 21:00 ngày 1. Lưu vào máy (localStorage).
+- Mặt trời, mặt trăng, sao, màu trời, đèn đường và cửa sổ đều theo giờ.
+- Nút tua ×30 chỉ để xem nhanh ngày và đêm, mặc định ×1.
+
+## Điều khiển
+- Điện thoại: kéo nửa trái để đi (joystick hiện ở chỗ chạm, đẩy hết cỡ là chạy), kéo nửa phải để xoay camera.
+- Máy tính: WASD hoặc mũi tên, Shift để chạy, kéo chuột để xoay, E để vào.
