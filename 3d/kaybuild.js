@@ -12,7 +12,7 @@ export const C = {
   yellow: [2, 3],
 };
 
-class Builder {
+export class Builder {
   constructor() { this.parts = []; this.stack = [new THREE.Matrix4()]; }
   get m() { return this.stack[this.stack.length - 1]; }
   push(x = 0, y = 0, z = 0, ry = 0) {
@@ -70,7 +70,7 @@ class Builder {
 }
 
 // Cửa sổ kiểu KayKit, mặt quay về +Z tại vị trí hiện tại của builder
-function kWindow(k, x, y, w = 1.5, h = 1.9, frame = C.white, curtain = C.salmon) {
+export function kWindow(k, x, y, w = 1.5, h = 1.9, frame = C.white, curtain = C.salmon) {
   k.box(w + 0.4, h + 0.4, 0.24, x, y - 0.2, 0.04, frame, { r: 0.08 });
   k.box(w, h, 0.12, x, y, 0.14, null, { glass: true, r: 0 });
   k.box(0.12, h, 0.12, x, y, 0.2, frame, { r: 0.03 });
@@ -79,7 +79,7 @@ function kWindow(k, x, y, w = 1.5, h = 1.9, frame = C.white, curtain = C.salmon)
   k.box(w + 0.7, 0.2, 0.5, x, y - 0.38, 0.22, frame, { r: 0.06 });
 }
 
-function kDoor(k, x, y, w, h, panel, frame = C.white) {
+export function kDoor(k, x, y, w, h, panel, frame = C.white) {
   k.box(w + 0.5, h + 0.3, 0.26, x, y, 0.04, frame, { r: 0.08 });
   k.box(w, h, 0.14, x, y, 0.12, panel, { r: 0.05 });
   k.box(w * 0.7, h * 0.3, 0.06, x, y + h * 0.58, 0.2, null, { glass: true, r: 0 });
@@ -279,4 +279,48 @@ export function casinoLights(c, signTexture, bladeTexture) {
   const under = new THREE.Mesh(new THREE.PlaneGeometry(12, 5), new THREE.MeshBasicMaterial({ color: '#fff1c4', toneMapped: false, side: THREE.DoubleSide }));
   under.rotation.x = Math.PI / 2; under.position.set(0, P + 5.1, D / 2 + 3.0); g.add(under);
   return { group: g, bulbMat, signs: [sign.material, marquee.material, blade.material] };
+}
+
+// ---------------- NGÂN HÀNG BRUHBANK ----------------
+export function buildBankKay(kitMaterial, signTexture) {
+  const k = new Builder();
+  const W = 11, D = 8.5, P = 0.45, H = 6.4;
+  k.box(W + 0.4, P, D + 0.4, 0, 0, 0, C.lgrey, { r: 0.12 });
+  k.box(W, H, D, 0, P, 0, C.white, { r: 0.18, a: 0.3, b: 0.9 });
+  k.box(W + 0.3, 0.5, D + 0.3, 0, P + H, 0, C.slate, { r: 0.12 });
+  k.box(W - 2, 1.4, D - 2, 0, P + H + 0.5, -0.4, C.slate, { r: 0.2, a: 0.3, b: 0.8 });
+  k.cyl(1.6, 2.0, 1.2, 0, P + H + 1.9, -0.4, C.sky, { seg: 16 });
+  // Bậc thềm 3 nấc phía trước
+  for (let i = 0; i < 3; i++) k.box(W - 0.6 - i * 0.6, 0.15 * (i + 1), 2.6 - i * 0.7, 0, 0, D / 2 + 1.3 - i * 0.35, C.lgrey, { r: 0.05 });
+  // Hiên cột
+  for (const x of [-3.6, -1.2, 1.2, 3.6]) {
+    k.box(0.9, 0.3, 0.9, x, P, D / 2 + 1.6, C.white, { r: 0.08 });
+    k.cyl(0.32, 0.36, 5.4, x, P + 0.3, D / 2 + 1.6, C.white, { seg: 12 });
+    k.box(0.9, 0.3, 0.9, x, P + 5.7, D / 2 + 1.6, C.white, { r: 0.08 });
+  }
+  k.box(9.2, 1.0, 2.6, 0, P + 6.0, D / 2 + 1.1, C.white, { r: 0.12 });
+  const shape = new THREE.Shape([new THREE.Vector2(-4.8, 0), new THREE.Vector2(4.8, 0), new THREE.Vector2(0, 1.6)]);
+  const ped = new THREE.ExtrudeGeometry(shape, { depth: 2.4, bevelEnabled: false });
+  k.addGeo(ped, C.white, { y: P + 7.0, z: D / 2 - 0.1 });
+  k.box(9.8, 0.25, 0.4, 0, P + 6.95, D / 2 + 2.35, C.slate, { r: 0.06 });
+  // Mặt tiền: cửa kính khung vàng, cửa sổ
+  k.push(0, 0, D / 2);
+  k.box(2.8, 3.6, 0.25, 0, P, 0.02, C.gold, { r: 0.08 });
+  k.box(2.3, 3.2, 0.12, 0, P + 0.1, 0.12, null, { glass: true, r: 0 });
+  k.box(0.12, 3.2, 0.12, 0, P + 0.1, 0.18, C.gold, { r: 0.03 });
+  for (const x of [-2.4, 2.4]) kWindow(k, x, P + 2.0, 1.2, 2.2, C.white, C.sky);
+  // ATM bên trái mặt tiền
+  k.box(1.3, 2.3, 0.7, -4.4, P, 0.3, C.dgrey, { r: 0.12 });
+  k.box(1.32, 0.35, 0.72, -4.4, P + 2.3, 0.3, C.blue, { r: 0.1 });
+  k.box(0.9, 0.6, 0.08, -4.4, P + 1.35, 0.66, null, { glass: true, r: 0 });
+  k.box(0.9, 0.25, 0.2, -4.4, P + 0.95, 0.7, C.lgrey, { r: 0.04 });
+  k.pop();
+  for (const [ry, half] of [[Math.PI / 2, W / 2], [-Math.PI / 2, W / 2]]) {
+    k.push(Math.sin(ry) * half, 0, Math.cos(ry) * half, ry);
+    for (const x of [-2.2, 2.2]) kWindow(k, x, P + 2.0, 1.3, 2.2, C.white, C.sky);
+    k.pop();
+  }
+  const mesh = k.build(kitMaterial);
+  const sign = new THREE.Mesh(new THREE.PlaneGeometry(7.6, 1.2), new THREE.MeshBasicMaterial({ map: signTexture, transparent: true, toneMapped: false }));
+  return { mesh, sign, signY: P + 6.5, signZ: D / 2 + 2.45, W, D };
 }

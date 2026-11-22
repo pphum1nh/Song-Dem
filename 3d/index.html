@@ -51,19 +51,31 @@
   #clock-day { font-size: 13px; color: var(--muted); font-weight: 600; white-space: nowrap; }
 
   /* Nút tốc độ */
-  #speed { position: fixed; z-index: 2; top: calc(var(--sat) + 12px); right: calc(var(--sar) + 12px);
+  #phone { position: fixed; z-index: 2; top: calc(var(--sat) + 12px); right: calc(var(--sar) + 12px);
     width: 48px; height: 48px; border-radius: 12px; border: 1px solid var(--border);
-    background: var(--panel); color: var(--text); font-weight: 800; font-size: 15px; font-variant-numeric: tabular-nums; }
+    background: var(--panel); color: var(--text); display: grid; place-items: center; }
+  #phone svg { width: 22px; height: 22px; }
+  #cash { top: calc(var(--sat) + 66px); left: 50%; transform: translateX(-50%); pointer-events: none;
+    padding: 4px 12px; border-radius: 999px; background: rgba(29,16,32,.86); border: 1px solid var(--border);
+    color: var(--accent); font-weight: 800; font-size: 14px; font-variant-numeric: tabular-nums; }
+  #jump { position: fixed; z-index: 2; right: calc(var(--sar) + 22px); bottom: calc(var(--sab) + 28px);
+    width: 68px; height: 68px; border-radius: 50%; border: 2px solid rgba(255,255,255,.35);
+    background: rgba(29,16,32,.72); color: var(--text); display: grid; place-items: center; touch-action: none; }
+  #jump svg { width: 30px; height: 30px; }
+  #jump:active { transform: scale(.94); background: var(--panel-2); }
+  #toast { position: fixed; z-index: 4; left: 50%; top: calc(var(--sat) + 104px); transform: translate(-50%, -6px);
+    max-width: min(90vw, 380px); padding: 9px 14px; border-radius: 12px; background: var(--panel); border: 1px solid var(--accent);
+    color: var(--text); font-size: 13.5px; font-weight: 600; text-align: center; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; }
+  #toast.on { opacity: 1; transform: translate(-50%, 0); }
   #menu { position: fixed; z-index: 2; top: calc(var(--sat) + 12px); left: calc(var(--sal) + 12px);
     width: 48px; height: 48px; border-radius: 12px; border: 1px solid var(--border);
     background: var(--panel); color: var(--text); display: grid; place-items: center; }
   #menu svg { width: 22px; height: 22px; }
   .actions.grid2 { grid-template-columns: 1fr 1fr; max-height: 60vh; overflow: auto; }
   .actions.grid2 .btn:last-child { grid-column: 1 / -1; }
-  #speed[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 
   /* Gợi ý điều khiển */
-  #hint { top: calc(var(--sat) + 72px); left: 50%; transform: translateX(-50%);
+  #hint { top: calc(var(--sat) + 104px); left: 50%; transform: translateX(-50%);
     max-width: min(92vw, 420px); padding: 10px 14px; border-radius: var(--r);
     background: var(--panel); border: 1px solid var(--border); color: var(--muted);
     font-size: 13px; text-align: center; transition: opacity .4s ease, transform .4s ease; pointer-events: none; }
@@ -81,7 +93,7 @@
     background: var(--text); box-shadow: 0 4px 12px rgba(0,0,0,.4); transform: translate(-50%,-50%); }
 
   /* Nút hành động */
-  #action { position: fixed; z-index: 2; right: calc(var(--sar) + 20px); bottom: calc(var(--sab) + 32px);
+  #action { position: fixed; z-index: 2; right: calc(var(--sar) + 20px); bottom: calc(var(--sab) + 110px);
     display: flex; align-items: center; gap: 8px; min-height: 56px; padding: 0 22px;
     border-radius: 999px; border: 0; background: var(--accent); color: var(--accent-ink);
     font: 800 17px/1 inherit; font-family: inherit; box-shadow: 0 8px 24px rgba(0,0,0,.4); }
@@ -102,7 +114,7 @@
   .btn { min-height: 50px; border-radius: 12px; border: 1px solid var(--border); background: var(--panel-2);
     color: var(--text); font: 700 16px/1 inherit; font-family: inherit; }
   .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
-  .btn:focus-visible, #action:focus-visible, #speed:focus-visible, #menu:focus-visible { outline: 3px solid var(--pink); outline-offset: 2px; }
+  .btn:focus-visible, #action:focus-visible, #phone:focus-visible, #jump:focus-visible, #menu:focus-visible { outline: 3px solid var(--pink); outline-offset: 2px; }
   @keyframes rise { from { transform: translateY(16px); opacity: 0; } to { transform: none; opacity: 1; } }
 
   #fade { position: fixed; inset: 0; z-index: 6; background: #000; opacity: 0; pointer-events: none; transition: opacity .4s ease; }
@@ -113,6 +125,64 @@
   #error { position: fixed; left: 12px; right: 12px; bottom: calc(var(--sab) + 12px); z-index: 8; padding: 12px 14px;
     background: #3a0d1c; border: 1px solid #7a2340; border-radius: 12px; color: #ffd7e2; font-size: 13px; }
 
+  /* ---- Điện thoại (lấy từ bản 2D) ---- */
+  :root { --f-bric: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .phone-ov[hidden] { display: none !important; }
+  .phone-ov { z-index: 6; }
+  @keyframes pop { from { transform: scale(.96); opacity: 0; } to { transform: none; opacity: 1; } }
+  .phone button { font-family: inherit; color: inherit; cursor: pointer; }
+  .ph-row.tx { grid-template-columns: 1fr auto; }
+  .ph-row .px { font-variant-numeric: tabular-nums; }
+  .ph-row .px.pos { color: #8fe6b2; } .ph-row .px.neg { color: #ffb0aa; }
+  .ph-big { font-size: 30px; font-weight: 800; font-variant-numeric: tabular-nums; color: #fff; }
+  .ph-card .btn { border-radius: 12px; border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.08); color: #eef1f6; font-weight: 700; }
+  .ph-map { width: 100%; height: auto; border-radius: 12px; display: block; }
+  .ph-map .mroad { fill: #3a3f4c; } .ph-map .mb { fill: #6b7385; stroke: #8a93a6; stroke-width: .6; }
+  .ph-map .mp { cursor: pointer; } .ph-map .hit { fill: transparent; }
+  .ph-places { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .ph-places .btn { display: flex; align-items: center; gap: 8px; justify-content: flex-start; padding: 0 12px; }
+  .ph-places i { width: 12px; height: 12px; border-radius: 50%; flex: none; } .ph-map .mp circle { stroke: #fff; stroke-width: 1.2; }
+  .ph-map .mp.on circle { stroke: #ffd36b; stroke-width: 2.4; }
+  .ph-map .mp text { font: 700 6.5px system-ui, sans-serif; fill: #fff; text-anchor: middle; paint-order: stroke; stroke: #0c0e13; stroke-width: 2px; }
+  .ph-map .me { fill: #ffd36b; stroke: #2a1a00; stroke-width: .8; }
+  .phone-ov{position:fixed; inset:0; z-index:85; background:rgba(0,0,0,.62); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;
+  padding:calc(12px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px))}
+  .phone{width:min(370px, 100%); height:min(720px, calc(100vh - 90px)); height:min(720px, calc(100dvh - 90px)); border-radius:38px; background:#0c0e13; border:7px solid #2a2e37;
+  box-shadow:0 20px 60px rgba(0,0,0,.6), inset 0 0 0 1px #444a56; display:flex; flex-direction:column; overflow:hidden; color:#eef1f6; animation:pop .25s ease-out}
+  .ph-status{display:flex; justify-content:space-between; align-items:center; padding:10px 22px 6px; font-size:12.5px; font-weight:700; font-variant-numeric:tabular-nums}
+  .ph-status .isl{width:84px; height:22px; border-radius:999px; background:#000}
+  .ph-status svg{width:22px; height:12px}
+  .ph-screen{flex:1; overflow-y:auto; padding:6px 16px 16px; background:radial-gradient(120% 60% at 50% 0%, #2b3866, #0c0e13 70%)}
+  .ph-homebar{height:26px; display:grid; place-items:center; background:#0c0e13; border:0; padding:0}
+  .ph-homebar::after{content:""; width:120px; height:5px; border-radius:999px; background:#cfd4de}
+  .ph-close{min-height:42px; padding:0 22px; border-radius:999px; border:1px solid rgba(255,255,255,.3); background:rgba(0,0,0,.4); color:#fff; font-weight:700}
+  .ph-clock{text-align:center; padding:26px 0 22px}
+  .ph-clock b{display:block; font-family:var(--f-bric); font-weight:700; font-size:64px; line-height:1; letter-spacing:-.02em; font-variant-numeric:tabular-nums}
+  .ph-clock span{color:#aeb6c8; font-weight:600}
+  .apps{display:grid; grid-template-columns:repeat(3,1fr); gap:18px 10px}
+  .papp{display:flex; flex-direction:column; align-items:center; gap:6px; background:none; border:0; color:#eef1f6; font-size:12px; font-weight:600}
+  .papp i{width:62px; height:62px; border-radius:18px; display:grid; place-items:center; box-shadow:0 6px 14px rgba(0,0,0,.4)}
+  .papp i svg{width:32px; height:32px; fill:none; stroke:#fff; stroke-width:2; stroke-linecap:round; stroke-linejoin:round}
+  .ph-head{position:sticky; top:-6px; z-index:2; display:flex; align-items:center; gap:8px; padding:8px 0 10px; background:linear-gradient(#1c2443 70%, transparent)}
+  .ph-head button{min-height:34px; padding:0 10px; border-radius:10px; border:1px solid rgba(255,255,255,.2); background:rgba(255,255,255,.06); font-size:13px; font-weight:700}
+  .ph-head h4{margin:0; flex:1; font-family:var(--f-bric); font-weight:800; font-size:19px}
+  .ph-pill{font-size:10.5px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; padding:3px 8px; border-radius:999px; background:rgba(111,220,156,.2); color:#8fe6b2}
+  .ph-pill.closed{background:rgba(255,159,154,.2); color:#ffb0aa}
+  .ph-list{display:flex; flex-direction:column; gap:8px}
+  .ph-row{display:grid; grid-template-columns:44px 1fr auto; gap:10px; align-items:center; padding:10px; border-radius:14px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08); text-align:left; color:#eef1f6; width:100%}
+  .ph-card{display:flex; flex-direction:column; gap:8px; padding:12px; border-radius:14px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08)}
+  .ph-card h5{margin:0; font-size:15px}
+  .ph-card p{margin:0; font-size:12px; color:#aeb6c8; line-height:1.45}
+  .ph-card .btn{min-height:42px; font-size:13px}
+  .ph-card .btn.go{background:#ff8a3d; border-color:#ff8a3d; color:#2a1200}
+  .ph-row h5{margin:0; font-size:14px}
+  .ph-row p{margin:2px 0 0; font-size:12px; color:#aeb6c8}
+  .ph-note{margin:4px 0 10px; font-size:12.5px; color:#aeb6c8}
+  .ph-sub{margin:6px 0 0; font-size:13px; color:#aeb6c8; text-transform:uppercase; letter-spacing:.08em}
+  .ph-card .btn small{font-weight:600; opacity:.85}
+  .papp i{position:relative}
+  .ph-card.v6own p{margin:4px 0}
+  .papp i svg.gi{fill:#fff; stroke:none; width:30px; height:30px}
   /* ---- Menu chính và rèm tải (lấy từ bản 2D) ---- */
   :root { --f-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; --f-bungee: "Bungee", "Arial Black", Impact, sans-serif; }
 #sdm{position:fixed;inset:0;z-index:2147483000;display:flex;overflow-y:auto;-webkit-overflow-scrolling:touch;
@@ -202,8 +272,11 @@ html.sdm-on,html.sdm-on body{overflow:hidden}
   <span id="clock-day">Ngày 1</span>
 </div>
 <button id="menu" type="button" aria-label="Mở menu" title="Menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
-<button id="speed" type="button" aria-pressed="false" aria-label="Tốc độ thời gian" title="Tua nhanh thời gian">×1</button>
-<div id="hint" class="hud"><b>Kéo bên trái</b> để đi, đẩy hết cỡ để chạy · <b>Kéo bên phải</b> để xoay. Sòng Đêm ở phía đông, theo đồng xu vàng.</div>
+<button id="phone" type="button" aria-label="Mở điện thoại" title="Điện thoại"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10.5 18.5h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+<div id="cash" class="hud" aria-label="Tiền trong ví">$1.000</div>
+<button id="jump" type="button" aria-label="Nhảy" title="Nhảy (Space)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V6M6.5 11.5 12 6l5.5 5.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+<div id="toast" role="status" aria-live="polite"></div>
+<div id="hint" class="hud"><b>Kéo bên trái</b> để đi, đẩy hết cỡ để chạy · <b>Kéo bên phải</b> để xoay · Nút <b>↑</b> để nhảy. Mở điện thoại ở góc phải để xem ví, ngân hàng và bản đồ.</div>
 
 <div id="joy-ghost" aria-hidden="true"></div>
 <div id="joy" aria-hidden="true"><div id="joy-knob"></div></div>

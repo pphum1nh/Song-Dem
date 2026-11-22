@@ -1,6 +1,7 @@
 // Thành phố dựng từ bộ KayKit City Builder Bits (CC0, Kay Lousberg) trên lưới ô 12 m.
 // Sòng Đêm, nhà và đài phun nước vẫn là mô hình tự dựng.
 import * as THREE from 'three';
+import { buildHouseKay, buildCasinoKay, casinoLights, buildBankKay } from './kaybuild.js';
 
 export const S = 6;                       // 1 đơn vị KayKit = 6 m (một ô 2×2 = 12 m)
 export const TILE = 12, BLOCK = 36, ROAD = 12, PITCH = BLOCK + ROAD, GRID = 1; // 3×3 khối đi lại được
@@ -18,7 +19,12 @@ export function seeded(seed) {
   };
 }
 
+// Bậc thềm/hiên đứng lên được: {minX,maxX,minZ,maxZ,y}
+export const platforms = [];
+export const BANK = { x: 0, z: PITCH - TILE, i: 0, j: 1, tx: 0, tz: -1 };
+
 export function groundHeight(x, z) {
+  for (const p of platforms) if (x >= p.minX && x <= p.maxX && z >= p.minZ && z <= p.maxZ) return p.y;
   const i = Math.round(x / PITCH), j = Math.round(z / PITCH);
   if (Math.abs(i) > GRID || Math.abs(j) > GRID) return ROADY;
   const e = BLOCK / 2 + 0.6;
@@ -55,6 +61,22 @@ function labelSprite(text, color = '#ffffff', bg = 'rgba(20,10,24,.82)') {
   const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, fog: false }));
   s.scale.set(8, 2, 1);
   return s;
+}
+
+// Biển chữ neon dùng font Bungee của bản 2D
+function signTexture(text, w, h, size, fill = '#ffe3a1', glow = '#ff3d9a') {
+  return canvasTex(w, h, (g) => {
+    g.font = `${size}px Bungee, "Arial Black", sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.shadowColor = glow; g.shadowBlur = 34; g.fillStyle = fill; g.fillText(text, w / 2, h / 2 + 6);
+    g.shadowBlur = 10; g.fillText(text, w / 2, h / 2 + 6);
+  });
+}
+function bladeTexture(text) {
+  return canvasTex(160, 1100, (g) => {
+    g.font = '96px Bungee, "Arial Black", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.shadowColor = '#ffcf5a'; g.shadowBlur = 20; g.fillStyle = '#fff3c9';
+    text.split('').forEach((ch, i) => g.fillText(ch, 80, 120 + i * 170));
+  });
 }
 
 // Mặt nạ phát sáng: chỉ vùng kính cửa sổ của bảng màu KayKit (góc dưới trái, ô 48/49/56/57).
@@ -102,6 +124,7 @@ export function buildWorld(scene, kitGltf) {
   const windowMats = [];
   const updaters = [];
   const rnd = seeded(20251122);
+  platforms.length = 0;
   const box = (minX, maxX, minZ, maxZ) => colliders.push({ minX, maxX, minZ, maxZ });
 
   // Vật liệu gốc của KayKit: một texture bảng màu dùng chung
@@ -191,6 +214,7 @@ export function buildWorld(scene, kitGltf) {
       const x = cx + tx * TILE, z = cz + tz * TILE;
       if (!ring) place('base', x, 0, z);
       if (special(i, j)) continue;
+      if (i === BANK.i && j === BANK.j && tx === BANK.tx && tz === BANK.tz) continue;
       if (tx === 0 && tz === 0) {
         if (ring) continue;
         // Sân trong: thùng rác, hộp, bụi cây
@@ -256,140 +280,78 @@ export function buildWorld(scene, kitGltf) {
     }
   }
 
-  // ---------- SÒNG ĐÊM ----------
+  // ---------- SÒNG ĐÊM (kiểu KayKit) ----------
   {
-    const W = 30, D = 20, H = 15, cx = 0, cz = -3;
-    const g = new THREE.Group(); g.position.set(cx, SIDEWALK, cz); scene.add(g);
-    const bodyMat = new THREE.MeshStandardMaterial({ color: '#4a1d52', roughness: 0.55, metalness: 0.1 });
-    const goldMat = new THREE.MeshStandardMaterial({ color: '#d6a743', roughness: 0.3, metalness: 0.85, emissive: '#6a4300', emissiveIntensity: 0.5 });
-    const pink = new THREE.MeshBasicMaterial({ color: '#ff2d95', toneMapped: false });
-    const gold = new THREE.MeshBasicMaterial({ color: '#ffcf5a', toneMapped: false });
-    const add = (geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); g.add(m); return m; };
-
-    occluders.push(add(new THREE.BoxGeometry(W, H, D), bodyMat, 0, H / 2, 0));
-    add(new THREE.BoxGeometry(W - 6, 4, D - 6), bodyMat, 0, H + 2, 0);
-    add(new THREE.BoxGeometry(W - 12, 3, D - 10), goldMat, 0, H + 5.5, 0);
-    add(new THREE.BoxGeometry(W + 0.6, 0.6, D + 0.6), goldMat, 0, H, 0);
-    add(new THREE.BoxGeometry(W + 0.4, 0.4, D + 0.4), goldMat, 0, 6, 0);
-    for (const sx of [-1, 1]) {
-      add(new THREE.BoxGeometry(0.3, H, 0.3), pink, sx * (W / 2 + 0.15), H / 2, D / 2 + 0.15);
-      add(new THREE.BoxGeometry(0.3, H, 0.3), pink, sx * (W / 2 + 0.15), H / 2, -D / 2 - 0.15);
-    }
-    add(new THREE.BoxGeometry(W, 0.3, 0.3), pink, 0, H - 0.6, D / 2 + 0.2);
-    add(new THREE.BoxGeometry(W, 0.25, 0.25), gold, 0, 6.5, D / 2 + 0.2);
-    add(new THREE.BoxGeometry(W - 6, 0.25, 0.25), pink, 0, H + 4, (D - 6) / 2 + 0.15);
-
-    const glassMat = new THREE.MeshStandardMaterial({ color: '#2a1838', emissive: '#c25aa8', emissiveIntensity: 0.6, roughness: 0.2, metalness: 0.4 });
-    windowMats.push({ mat: glassMat, day: 0.25, night: 0.9 });
-    add(new THREE.BoxGeometry(W - 3, 1.6, 0.1), glassMat, 0, 8.2, D / 2 + 0.06);
-
-    const signTex = canvasTex(1024, 256, (c, w, h) => {
-      c.font = '900 150px -apple-system, "Segoe UI", Roboto, sans-serif';
-      c.textAlign = 'center'; c.textBaseline = 'middle';
-      c.shadowColor = '#ff2d95'; c.shadowBlur = 40;
-      c.fillStyle = '#ffd1ec'; c.fillText('SÒNG ĐÊM', w / 2, h / 2 + 8);
-      c.shadowBlur = 12; c.fillText('SÒNG ĐÊM', w / 2, h / 2 + 8);
-    });
-    const signMat = new THREE.MeshBasicMaterial({ map: signTex, transparent: true, toneMapped: false, depthWrite: false });
-    add(new THREE.PlaneGeometry(18, 4.5), signMat, 0, 11.6, D / 2 + 0.08);
-
-    add(new THREE.PlaneGeometry(8, 4.2), new THREE.MeshBasicMaterial({ color: '#ffb347', toneMapped: false }), 0, 2.1, D / 2 + 0.03);
-    add(new THREE.BoxGeometry(14, 0.45, 5.4), goldMat, 0, 5.1, D / 2 + 2.7);
-    add(new THREE.PlaneGeometry(13, 4.8), new THREE.MeshBasicMaterial({ color: '#ffe2a8', toneMapped: false, side: THREE.DoubleSide }), 0, 4.86, D / 2 + 2.7).rotation.x = Math.PI / 2;
-    for (const sx of [-6.4, 6.4]) {
-      add(new THREE.CylinderGeometry(0.28, 0.32, 4.9, 12), goldMat, sx, 2.45, D / 2 + 5);
-      box(cx + sx - 0.4, cx + sx + 0.4, cz + D / 2 + 4.6, cz + D / 2 + 5.4);
-    }
-    add(new THREE.PlaneGeometry(4.2, 9), new THREE.MeshStandardMaterial({ color: '#8d0f2e', roughness: 0.9 }), 0, 0.02, D / 2 + 4.5).rotation.x = -Math.PI / 2;
-    for (const sx of [-1, 1]) place('bush', cx + sx * 9, SIDEWALK, cz + D / 2 + 3, 0, S * 1.1);
-
-    const faceTex = canvasTex(256, 256, (c, w) => {
-      c.fillStyle = '#e2b24b'; c.beginPath(); c.arc(w / 2, w / 2, w / 2, 0, Math.PI * 2); c.fill();
-      c.strokeStyle = '#a8761c'; c.lineWidth = 14; c.beginPath(); c.arc(w / 2, w / 2, w / 2 - 22, 0, Math.PI * 2); c.stroke();
-      c.fillStyle = '#7a4f0c'; c.font = '900 110px -apple-system, "Segoe UI", sans-serif';
-      c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('SĐ', w / 2, w / 2 + 6);
-    });
-    const faceMat = new THREE.MeshStandardMaterial({ map: faceTex, metalness: 0.7, roughness: 0.35, emissive: '#ffcf5a', emissiveMap: faceTex, emissiveIntensity: 0.35 });
-    const coin = new THREE.Mesh(new THREE.CylinderGeometry(3.2, 3.2, 0.6, 40), [goldMat, faceMat, faceMat]);
-    coin.rotation.x = Math.PI / 2;
-    const coinPivot = new THREE.Group(); coinPivot.position.set(0, H + 11.2, 0); coinPivot.add(coin); g.add(coinPivot);
-
+    const cx = 0, cz = -5;
+    const c = buildCasinoKay(litWarm);
+    c.mesh.position.set(cx, SIDEWALK, cz); scene.add(c.mesh); occluders.push(c.mesh);
+    const lights = casinoLights(c, signTexture('SÒNG ĐÊM', 1024, 200, 150), bladeTexture('CASINO'));
+    lights.group.position.copy(c.mesh.position); scene.add(lights.group);
+    const { W, D, top } = c, fz = cz + D / 2;
     box(cx - W / 2, cx + W / 2, cz - D / 2, cz + D / 2);
-    interactables.push({ id: 'casino', x: cx, z: cz + D / 2 + 3, r: 3.4, label: 'Vào Sòng Đêm' });
+    box(cx - W / 2 - 2.4, cx - W / 2, fz + 0.2, fz + 0.9);                // biển dọc CASINO
+    for (const x of [-6, 6]) box(cx + x - 0.5, cx + x + 0.5, fz + 4.9, fz + 5.9); // cột mái che
+    for (const x of [-8.5, 8.5]) box(cx + x - 0.95, cx + x + 0.95, fz + 6.6, fz + 8.4); // chậu cây
+    for (const x of [-2.7, 2.7]) box(cx + x - 0.15, cx + x + 0.15, fz + 2.9, fz + 10.6); // dây chắn
+    platforms.push({ minX: cx - 5, maxX: cx + 5, minZ: fz + 0.4, maxZ: fz + 2.4, y: SIDEWALK + 0.25 });
+    interactables.push({ id: 'casino', x: cx, z: fz + 2.2, r: 3.2, label: 'Vào Sòng Đêm' });
+    const coinMat = new THREE.MeshStandardMaterial({ color: '#e2b24b', metalness: 0.6, roughness: 0.35, emissive: '#ffcf5a', emissiveIntensity: 0.3 });
+    const coin = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 2.6, 0.55, 36), coinMat);
+    coin.rotation.x = Math.PI / 2;
+    const pivot = new THREE.Group(); pivot.position.set(cx, SIDEWALK + top + 10.8, cz - 1); pivot.add(coin); scene.add(pivot);
+    const lamp = new THREE.PointLight('#ffd28a', 0, 26, 1.6); lamp.position.set(cx, SIDEWALK + 4.2, fz + 4); scene.add(lamp);
     updaters.push((t, night) => {
-      coinPivot.rotation.y = t * 0.9;
-      const flick = 0.88 + 0.12 * Math.sin(t * 3.1) * Math.sin(t * 7.3);
-      signMat.opacity = (0.55 + 0.45 * night) * flick;
-      pink.color.setRGB(1, 0.18, 0.58).multiplyScalar(0.5 + 0.7 * night);
-      gold.color.setRGB(1, 0.81, 0.35).multiplyScalar(0.6 + 0.5 * night);
+      pivot.rotation.y = t * 0.9;
+      const flick = 0.9 + 0.1 * Math.sin(t * 3.1) * Math.sin(t * 7.3);
+      lights.bulbMat.color.setRGB(1, 0.9, 0.65).multiplyScalar(0.55 + 0.75 * night * (0.85 + 0.15 * Math.sin(t * 9)));
+      for (const m of lights.signs) m.opacity = (0.75 + 0.25 * night) * flick;
+      lamp.intensity = 90 * night;
     });
   }
 
-  // ---------- NHÀ ----------
-  const grassMat = new THREE.MeshStandardMaterial({ color: '#4d7a3f', roughness: 1 });
+  // ---------- NHÀ (kiểu KayKit) ----------
+  const grassMat = new THREE.MeshStandardMaterial({ color: '#5a8f45', roughness: 1 });
   {
-    const cx = -PITCH, cz = 0;
+    const cx = -PITCH, cz = 0, hz = cz - 4;
     const grass = new THREE.Mesh(new THREE.BoxGeometry(BLOCK - 2, 0.06, BLOCK - 2), grassMat);
     grass.position.set(cx, SIDEWALK + 0.02, cz); scene.add(grass);
-
-    const W = 11, D = 8, H = 5, hz = cz - 5;
-    const g = new THREE.Group(); g.position.set(cx, SIDEWALK, hz); scene.add(g);
-    const wallMat = new THREE.MeshStandardMaterial({ color: '#eadcc4', roughness: 0.9 });
-    const trimMat = new THREE.MeshStandardMaterial({ color: '#f7f1e6', roughness: 0.8 });
-    const roofM = new THREE.MeshStandardMaterial({ color: '#b04a35', roughness: 0.8, flatShading: true });
-    const body = new THREE.Mesh(new THREE.BoxGeometry(W, H, D), wallMat); body.position.y = H / 2; g.add(body);
-    occluders.push(body);
-    const shape = new THREE.Shape();
-    shape.moveTo(-W / 2 - 0.7, 0); shape.lineTo(W / 2 + 0.7, 0); shape.lineTo(0, 3.4); shape.closePath();
-    const roofGeo = new THREE.ExtrudeGeometry(shape, { depth: D + 1.2, bevelEnabled: false });
-    roofGeo.translate(0, 0, -(D + 1.2) / 2);
-    const roof = new THREE.Mesh(roofGeo, roofM); roof.position.y = H; g.add(roof);
-    const chim = new THREE.Mesh(new THREE.BoxGeometry(0.9, 2.4, 0.9), new THREE.MeshStandardMaterial({ color: '#6d4a3d' }));
-    chim.position.set(3, H + 2.3, -1.5); g.add(chim);
-    const base = new THREE.Mesh(new THREE.BoxGeometry(W + 0.3, 0.5, D + 0.3), trimMat); base.position.y = 0.25; g.add(base);
-    const door = new THREE.Mesh(new THREE.BoxGeometry(1.6, 2.6, 0.12), new THREE.MeshStandardMaterial({ color: '#5a3522', roughness: 0.6 }));
-    door.position.set(0, 1.4, D / 2 + 0.04); g.add(door);
-    const porch = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 10), new THREE.MeshBasicMaterial({ color: '#ffd98a', toneMapped: false }));
-    porch.position.set(1.3, 2.9, D / 2 + 0.2); g.add(porch);
-    const winMat = new THREE.MeshStandardMaterial({ color: '#2b3550', emissive: '#ffcf7a', emissiveIntensity: 1, roughness: 0.2 });
-    windowMats.push({ mat: winMat, day: 0, night: 1.4 });
-    for (const [x, y, z, ry] of [[-3.3, 2.7, D / 2 + 0.05, 0], [3.3, 2.7, D / 2 + 0.05, 0], [W / 2 + 0.05, 2.7, 0, Math.PI / 2], [-W / 2 - 0.05, 2.7, 0, -Math.PI / 2]]) {
-      const w = new THREE.Mesh(new THREE.PlaneGeometry(2, 1.5), winMat); w.position.set(x, y, z); w.rotation.y = ry; g.add(w);
-      const f = new THREE.Mesh(new THREE.PlaneGeometry(2.3, 1.8), trimMat); f.position.set(x, y, z); f.rotation.y = ry; f.translateZ(-0.01); g.add(f);
-    }
-    box(cx - W / 2, cx + W / 2, hz - D / 2, hz + D / 2);
-
-    const stoneMat = new THREE.MeshStandardMaterial({ color: '#b7ab98', roughness: 0.95 });
-    for (let z = hz + D / 2 + 1.2; z < cz + BLOCK / 2 - 0.5; z += 1.4) {
-      const s = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.08, 1), stoneMat);
-      s.position.set(cx + Math.sin(z) * 0.15, SIDEWALK + 0.06, z); scene.add(s);
-    }
-    const fenceMat = new THREE.MeshStandardMaterial({ color: '#f2ede4', roughness: 0.8 });
-    const posts = [];
-    const half = BLOCK / 2 - 1.2;
-    for (let s = -half; s <= half + 0.01; s += 1.6) {
-      posts.push([cx + s, cz - half], [cx - half, cz + s], [cx + half, cz + s]);
-      if (Math.abs(s) > 2) posts.push([cx + s, cz + half]);
-    }
-    const postMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(0.15, 1.1, 0.15), fenceMat, posts.length);
-    posts.forEach(([x, z], i) => { m4.makeTranslation(x, SIDEWALK + 0.55, z); postMesh.setMatrixAt(i, m4); });
-    scene.add(postMesh);
-    const rail = (x, z, w, d) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, 0.1, d), fenceMat); m.position.set(x, SIDEWALK + 0.85, z); scene.add(m); };
-    rail(cx, cz - half, half * 2, 0.08); rail(cx - half, cz, 0.08, half * 2); rail(cx + half, cz, 0.08, half * 2);
-    rail(cx - (half + 2) / 2, cz + half, half - 2, 0.08); rail(cx + (half + 2) / 2, cz + half, half - 2, 0.08);
-    box(cx - half - 0.15, cx + half + 0.15, cz - half - 0.15, cz - half + 0.15);
-    box(cx - half - 0.15, cx - half + 0.15, cz - half, cz + half);
-    box(cx + half - 0.15, cx + half + 0.15, cz - half, cz + half);
-    box(cx - half, cx - 2, cz + half - 0.15, cz + half + 0.15);
-    box(cx + 2, cx + half, cz + half - 0.15, cz + half + 0.15);
-    for (const [x, z, s] of [[-11, -11, 1.7], [11, -12, 1.5], [-12, 9, 1.6], [12, 10, 1.8], [7, 4, 1.2]]) {
-      place('bush', cx + x, SIDEWALK, cz + z, rnd() * 6, S * s);
+    const h = buildHouseKay(litWarm);
+    h.mesh.position.set(cx, SIDEWALK, hz); scene.add(h.mesh); occluders.push(h.mesh);
+    const fz = hz + 4; // mặt tiền nhà
+    box(cx - 5.5, cx + 5.5, hz - 4, hz + 4);
+    for (const x of [-1.8, 1.8]) box(cx + x - 0.2, cx + x + 0.2, fz + 2.0, fz + 2.4);
+    platforms.push({ minX: cx - 2.1, maxX: cx + 2.1, minZ: fz, maxZ: fz + 2.4, y: SIDEWALK + 0.5 });
+    platforms.push({ minX: cx - 1.2, maxX: cx + 1.2, minZ: fz + 2.35, maxZ: fz + 3.05, y: SIDEWALK + 0.25 });
+    const fenceZ = hz + 16.6;
+    box(cx - 16.7, cx - 1.8, fenceZ - 0.15, fenceZ + 0.15);
+    box(cx + 1.8, cx + 16.7, fenceZ - 0.15, fenceZ + 0.15);
+    box(cx + 2.4, cx + 2.8, fenceZ - 1.0, fenceZ - 0.2); // hộp thư
+    for (const [x, z, sc] of [[-12, -12, 1.7], [12, -13, 1.5], [-13, 6, 1.6], [12, 7, 1.8], [-8, -15, 1.2]]) {
+      place('bush', cx + x, SIDEWALK, cz + z, rnd() * 6, S * sc);
       box(cx + x - 0.6, cx + x + 0.6, cz + z - 0.6, cz + z + 0.6);
     }
-    place('bench', cx - 5, SIDEWALK, cz + 6, Math.PI / 2);
+    place('bench', cx - 9, SIDEWALK, cz + 4, Math.PI / 2);
+    const porch = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 8), new THREE.MeshBasicMaterial({ color: '#ffe2a0', toneMapped: false }));
+    porch.position.copy(h.lights[0]).add(h.mesh.position); scene.add(porch);
     const label = labelSprite('NHÀ', '#ffe2a8');
-    label.position.set(cx, SIDEWALK + H + 6, hz); scene.add(label);
-    interactables.push({ id: 'house', x: cx, z: hz + D / 2 + 1.6, r: 2.6, label: 'Vào nhà' });
+    label.position.set(cx, SIDEWALK + 14, hz); scene.add(label);
+    interactables.push({ id: 'house', x: cx, z: fz + 2.6, r: 2.4, label: 'Vào nhà' });
+    updaters.push((t, night) => { porch.material.color.setRGB(1, 0.88, 0.63).multiplyScalar(0.35 + 0.9 * night); });
+  }
+
+  // ---------- NGÂN HÀNG BRUHBANK ----------
+  {
+    const bx = BANK.x, bz = BANK.z;
+    const bk = buildBankKay(litWarm, signTexture('BRUHBANK', 1024, 160, 120, '#ffffff', '#4aa3ff'));
+    bk.mesh.position.set(bx, SIDEWALK, bz); bk.mesh.rotation.y = Math.PI; scene.add(bk.mesh); occluders.push(bk.mesh);
+    scene.add(bk.sign); bk.sign.position.set(bx, SIDEWALK + bk.signY, bz - bk.signZ); bk.sign.rotation.y = Math.PI;
+    box(bx - bk.W / 2, bx + bk.W / 2, bz - bk.D / 2, bz + bk.D / 2);
+    for (const x of [-3.6, -1.2, 1.2, 3.6]) box(bx + x - 0.35, bx + x + 0.35, bz - bk.D / 2 - 1.9, bz - bk.D / 2 - 1.3);
+    platforms.push({ minX: bx - 5.2, maxX: bx + 5.2, minZ: bz - bk.D / 2 - 2.6, maxZ: bz - bk.D / 2, y: SIDEWALK + 0.45 });
+    box(bx + 3.75, bx + 5.05, bz - bk.D / 2 - 0.7, bz - bk.D / 2); // cây ATM
+    interactables.push({ id: 'atm', x: bx + 4.4, z: bz - bk.D / 2 - 1.4, r: 1.6, label: 'Dùng ATM' });
+    interactables.push({ id: 'bank', x: bx, z: bz - bk.D / 2 - 1.0, r: 1.6, label: 'Vào BruhBank' });
+    updaters.push((t, night) => { bk.sign.material.opacity = 0.8 + 0.2 * night; });
   }
 
   // ---------- CÔNG VIÊN ----------

@@ -57,8 +57,12 @@ export async function createCharacter(name) {
     if (!b) continue;
     rig[k] = { b, rest: b.quaternion.clone(), x: localAxis(b, AX), y: localAxis(b, AY) };
   }
+  let airMix = 0;
+  // Tư thế bật nhảy: co gối, tay giơ ra trước
+  const AIR = { thL: 0.75, thR: 0.2, shL: -1.2, shR: -0.5, ftL: 0.3, ftR: 0.2, uaL: -0.9, uaR: -0.6, faL: 0.6, faR: 0.6, spine1: 0.05 };
   const set = (k, ax, ay = 0) => {
     const r = rig[k]; if (!r) return;
+    if (airMix > 0 && AIR[k] !== undefined) ax = ax * (1 - airMix) + AIR[k] * airMix;
     r.b.quaternion.copy(r.rest).multiply(tq.setFromAxisAngle(r.x, ax));
     if (ay) r.b.quaternion.multiply(tq2.setFromAxisAngle(r.y, ay));
   };
@@ -72,7 +76,8 @@ export async function createCharacter(name) {
   return {
     object,
     // speed: m/s thực tế; run: 0..1; t: thời gian để thở khi đứng yên
-    animate(dt, speed, run, t) {
+    animate(dt, speed, run, t, air = 0) {
+      airMix = air;
       const amt = Math.min(1, speed / 1.2);
       const stride = 1.5 + 1.1 * run;
       phase += dt * (speed / stride) * Math.PI * 2;

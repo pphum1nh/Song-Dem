@@ -12,6 +12,7 @@ export class Input {
     this.keys = new Set();
     this.enabled = true;
     this.onAction = null;
+    this.jumpQueued = false;
 
     surface.addEventListener('pointerdown', (e) => this.down(e));
     surface.addEventListener('pointermove', (e) => this.moveEvt(e));
@@ -22,6 +23,7 @@ export class Input {
       if (e.repeat) return;
       this.keys.add(e.code);
       if ((e.code === 'KeyE' || e.code === 'Enter') && this.onAction) this.onAction();
+      if (e.code === 'Space' && this.enabled) { this.jumpQueued = true; e.preventDefault(); }
     });
     addEventListener('keyup', (e) => this.keys.delete(e.code));
     addEventListener('blur', () => { this.keys.clear(); this.resetJoy(); this.lookIds.clear(); });
@@ -90,6 +92,9 @@ export class Input {
     const run = k.has('ShiftLeft') || k.has('ShiftRight') || (this.joy.id !== null && len > 0.9);
     return { x, y, run };
   }
+
+  queueJump() { if (this.enabled) this.jumpQueued = true; }
+  consumeJump() { const j = this.jumpQueued; this.jumpQueued = false; return j; }
 
   consumeLook() {
     const l = { dx: this.look.dx, dy: this.look.dy };

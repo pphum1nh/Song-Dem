@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { radialTex } from './world.js';
 import { createCharacter } from './character.js';
 
-const WALK = 3.4, RUN = 7.2, RADIUS = 0.4;
+const WALK = 3.4, RUN = 7.2, RADIUS = 0.4, JUMP = 7.2, GRAVITY = 22;
 
 export function makeBlob(scene) {
   const blob = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 1.2), new THREE.MeshBasicMaterial({ map: radialTex('rgba(0,0,0,.5)', 'rgba(0,0,0,0)'), transparent: true, depthWrite: false }));
@@ -23,6 +23,9 @@ export class Player {
     this.heading = 0;
     this.speed = 0;
     this.run = 0;
+    this.vy = 0;
+    this.grounded = true;
+    this.air = 0;
     this.character = null;
     this.charName = null;
   }
@@ -34,7 +37,7 @@ export class Player {
     this.group.add(c.object);
   }
 
-  update(dt, t, mx, mz, run, colliders, groundHeight, limit) {
+  update(dt, t, mx, mz, run, colliders, groundHeight, limit, jump = false) {
     const mag = Math.min(1, Math.hypot(mx, mz));
     const target = run ? RUN : WALK * (mag > 0.05 ? Math.max(mag, 0.4) : 0);
     const tx = mag > 0.01 ? (mx / mag) * target : 0;
@@ -49,7 +52,18 @@ export class Player {
     resolve(p, RADIUS, colliders);
     p.x = Math.max(-limit, Math.min(limit, p.x));
     p.z = Math.max(-limit, Math.min(limit, p.z));
-    p.y += (groundHeight(p.x, p.z) - p.y) * (1 - Math.exp(-18 * dt));
+    const gy = groundHeight(p.x, p.z);
+    if (this.grounded) {
+      if (jump) { this.vy = JUMP; this.grounded = false; }
+      else if (gy < p.y - 0.3) { this.vy = 0; this.grounded = false; }
+      else p.y += (gy - p.y) * (1 - Math.exp(-18 * dt));
+    }
+    if (!this.grounded) {
+      this.vy -= GRAVITY * dt;
+      p.y += this.vy * dt;
+      if (p.y <= gy && this.vy <= 0) { p.y = gy; this.vy = 0; this.grounded = true; }
+    }
+    this.air += ((this.grounded ? 0 : 1) - this.air) * (1 - Math.exp(-14 * dt));
 
     this.speed = Math.hypot(this.velocity.x, this.velocity.z);
     if (this.speed > 0.3) {
@@ -59,8 +73,9 @@ export class Player {
     }
     this.group.rotation.y = this.heading;
     this.run += ((this.speed > WALK + 0.5 ? 1 : 0) - this.run) * (1 - Math.exp(-6 * dt));
-    if (this.character) this.character.animate(dt, this.speed, this.run, t);
-    this.blob.position.set(p.x, p.y + 0.03, p.z);
+    if (this.character) this.character.animate(dt, this.grounded ? this.speed : 0, this.run, t, this.air);
+    this.blob.position.set(p.x, gy + 0.03, p.z);
+    this.blob.scale.setScalar(1 - Math.min(0.5, (p.y - gy) * 0.25));
   }
 }
 

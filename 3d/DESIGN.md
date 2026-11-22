@@ -41,3 +41,11 @@ Người chơi đi từ nhà tới Sòng Đêm trong khi đồng hồ tự chạ
 ## Điều khiển
 - Điện thoại: kéo nửa trái để đi (joystick hiện ở chỗ chạm, đẩy hết cỡ là chạy), kéo nửa phải để xoay camera.
 - Máy tính: WASD hoặc mũi tên, Shift để chạy, kéo chuột để xoay, E để vào.
+
+## Cơ chế đã có (thêm dần)
+- **Nhảy:** nút ↑ hoặc phím Space. Đứng lên được hiên nhà, bậc thềm casino và ngân hàng.
+- **Tiền:** ví (tiền mặt) bắt đầu với $1.000 như bản 2D, cùng tài khoản BruhBank. Có lưu lịch sử giao dịch.
+- **Điện thoại:** giao diện như bản 2D, gồm Ví của tôi, BruhBank, Bản đồ (chỉ đường bằng cột sáng) và Cài đặt (tua giờ, về menu).
+- **BruhBank:** ATM mở 24/7 (rút tối đa $2.000 mỗi lần) và quầy giao dịch mở 8:00–17:00 theo giờ trong game.
+- **Trong nhà:** phòng kiểu nhà búp bê với nội thất KayKit Furniture. Nằm giường để ngủ tới 7:00 hoặc nghỉ 1 tiếng.
+- **Chưa có:** bên trong casino và cách kiếm tiền. Đây là bước kế tiếp.

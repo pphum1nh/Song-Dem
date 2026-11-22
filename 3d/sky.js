@@ -55,7 +55,7 @@ export function createSky(scene) {
   const tmp = new THREE.Color();
   const state = { night: 1 };
 
-  state.update = (minuteOfDay, center) => {
+  state.update = (minuteOfDay, center, indoor = false) => {
     const a = ((minuteOfDay - 360) / 720) * Math.PI; // 0 lúc 6:00, π lúc 18:00
     const elev = Math.sin(a);
     const day = smooth(-0.1, 0.3, elev);
@@ -66,6 +66,9 @@ export function createSky(scene) {
     uniforms.top.value.copy(PAL.topNight).lerp(PAL.topDay, day);
     uniforms.horizon.value.copy(PAL.horNight).lerp(PAL.horDay, day).lerp(PAL.horDusk, dusk * 0.7);
     scene.fog.color.copy(uniforms.horizon.value);
+    if (indoor) scene.fog.color.set('#120a14');
+    scene.fog.near = indoor ? 30 : 55; scene.fog.far = indoor ? 70 : 190;
+    dome.visible = !indoor;
 
     dir.set(Math.cos(a), elev, -0.35).normalize();
     const lightDir = day > 0.15 ? dir : moonDir.set(-dir.x, Math.max(0.35, -dir.y), -dir.z).normalize();
@@ -83,11 +86,11 @@ export function createSky(scene) {
     dome.position.copy(center);
     stars.position.copy(center);
     starMat.opacity = night * night;
-    stars.visible = night > 0.02;
+    stars.visible = !indoor && night > 0.02;
     moon.position.copy(center).addScaledVector(dir, -480);
     moon.position.y = Math.max(moon.position.y, center.y + 90);
     moon.material.opacity = night;
-    moon.visible = night > 0.02;
+    moon.visible = !indoor && night > 0.02;
   };
   return state;
 }
