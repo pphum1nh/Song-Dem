@@ -402,3 +402,130 @@ export function treeGeometry(kind = 0) {
   const mesh = k.build(null);
   return mesh.geometry;
 }
+
+// ---------------- NHÀ THỜ LỚN (Gothic, kiểu KayKit) ----------------
+// Mặt tiền quay về +Z; gốc toạ độ ở giữa đáy. Rộng ~19 m, dài ~36 m, tháp cao ~33 m.
+function pointedArch(w, h, steps = 8) {
+  // Vòm nhọn: hai cung tròn bán kính 0,8·w gặp nhau ở đỉnh
+  const r = w * 0.8, spring = h - Math.sqrt(r * r - (r - w / 2) ** 2);
+  const pts = [new THREE.Vector2(-w / 2, 0), new THREE.Vector2(w / 2, 0)];
+  const cx1 = w / 2 - r, cx2 = -w / 2 + r;
+  const a0 = 0, a1 = Math.acos((r - w / 2) / r);
+  for (let i = 0; i <= steps; i++) { const a = a0 + (a1 - a0) * (i / steps); pts.push(new THREE.Vector2(cx1 + r * Math.cos(a), spring + r * Math.sin(a))); }
+  for (let i = steps; i >= 0; i--) { const a = a0 + (a1 - a0) * (i / steps); pts.push(new THREE.Vector2(cx2 - r * Math.cos(a), spring + r * Math.sin(a))); }
+  return new THREE.Shape(pts);
+}
+function archWindow(k, x, y, w, h, frame = C.white, depth = 0.12) {
+  const f = new THREE.ExtrudeGeometry(pointedArch(w + 0.5, h + 0.4), { depth: 0.2, bevelEnabled: false });
+  k.addGeo(f, frame, { x, y: y - 0.2, z: -0.02 });
+  const g = new THREE.ExtrudeGeometry(pointedArch(w, h), { depth, bevelEnabled: false });
+  k.addGeo(g, null, { glass: true, x, y, z: 0.12 });
+  k.box(0.1, h * 0.82, 0.1, x, y, 0.26, frame, { r: 0.02 });
+  k.box(w, 0.1, 0.1, x, y + h * 0.42, 0.26, frame, { r: 0.02 });
+  k.box(w + 0.7, 0.18, 0.45, x, y - 0.35, 0.22, frame, { r: 0.05 });
+}
+function spire(k, x, y, z, r, h, cell = C.slate, seg = 8) {
+  k.cyl(0, r, h, x, y, z, cell, { seg });
+  k.cyl(0.08, 0.08, 1.4, x, y + h - 0.1, z, C.gold, { seg: 6 });
+  k.box(0.9, 0.14, 0.14, x, y + h + 0.85, z, C.gold, { r: 0.03 });
+}
+export function buildCathedral(kitMaterial) {
+  const k = new Builder();
+  const NW = 11, NL = 26, NH = 11, P = 0.6; // gian giữa: rộng, dài, cao tường
+  const stone = C.white, stone2 = C.lgrey, roof = C.slate;
+  // Nền và bậc thềm
+  k.box(NW + 8.5, P, NL + 6, 0, 0, -1.5, C.lgrey, { r: 0.15 });
+  for (let i = 0; i < 3; i++) k.box(12 - i * 1.2, 0.2 * (i + 1), 3.2 - i * 0.9, 0, 0, NL / 2 + 3.2 - i * 0.45, C.lgrey, { r: 0.05 });
+  // Gian giữa + hai gian bên thấp hơn
+  k.box(NW, NH, NL, 0, P, 0, stone, { r: 0.25, a: 0.12, b: 0.6 });
+  for (const s of [-1, 1]) k.box(3.4, 6.5, NL - 2, s * (NW / 2 + 1.7), P, 0, stone2, { r: 0.2, a: 0.2, b: 0.7 });
+  for (const s of [-1, 1]) k.addGeo(new RoundedBoxGeometry(4.2, 0.35, NL - 1.6, 1, 0.1), roof, { rz: -s * 0.42, x: s * (NW / 2 + 1.8), y: P + 7.1, z: 0 });
+  // Mái dốc gian giữa
+  const rh = 5.5, a = Math.atan2(rh, NW / 2 + 0.2);
+  const attic = new THREE.ExtrudeGeometry(new THREE.Shape([new THREE.Vector2(-NW / 2, 0), new THREE.Vector2(NW / 2, 0), new THREE.Vector2(0, rh)]), { depth: NL - 0.4, bevelEnabled: false });
+  attic.translate(0, 0, -(NL - 0.4) / 2);
+  k.addGeo(attic, stone, { y: P + NH });
+  const slabL = (NW / 2 + 0.9) / Math.cos(a);
+  for (const s of [-1, 1]) k.addGeo(new RoundedBoxGeometry(slabL, 0.45, NL + 0.6, 1, 0.12), roof,
+    { rz: -s * a, x: s * (slabL / 2) * Math.cos(a), y: P + NH + rh - (slabL / 2) * Math.sin(a) + 0.3 });
+  k.box(0.5, 0.4, NL + 0.8, 0, P + NH + rh - 0.1, 0, C.gold, { r: 0.1 });
+  // Cánh ngang (transept) với tháp giữa
+  const TZ = -NL / 2 + 8;
+  k.box(NW + 10, NH - 1, 7, 0, P, TZ, stone, { r: 0.25, a: 0.12, b: 0.6 });
+  for (const s of [-1, 1]) {
+    k.push(s * (NW / 2 + 5), 0, TZ, s * Math.PI / 2);
+    archWindow(k, 0, P + 3.2, 2.6, 5.2);
+    k.pop();
+  }
+  {
+    // Mái dốc hai phía của cánh ngang, sống mái chạy theo trục X
+    const TL = NW + 10, th = 3.4, ta = Math.atan2(th, 3.5 + 0.2);
+    const tAttic = new THREE.ExtrudeGeometry(new THREE.Shape([new THREE.Vector2(-3.5, 0), new THREE.Vector2(3.5, 0), new THREE.Vector2(0, th)]), { depth: TL - 0.3, bevelEnabled: false });
+    tAttic.translate(0, 0, -(TL - 0.3) / 2); tAttic.rotateY(Math.PI / 2);
+    k.addGeo(tAttic, stone, { y: P + NH - 1, z: TZ });
+    const tl = (3.5 + 0.7) / Math.cos(ta);
+    for (const s of [-1, 1]) k.addGeo(new RoundedBoxGeometry(TL + 0.6, 0.4, tl, 1, 0.1), roof,
+      { rx: s * ta, y: P + NH - 1 + th - (tl / 2) * Math.sin(ta) + 0.28, z: TZ + s * (tl / 2) * Math.cos(ta) });
+  }
+  k.box(5, 6, 5, 0, P + NH + 2, TZ, stone, { r: 0.2, a: 0.1, b: 0.5 });
+  for (const s of [-1, 1]) { k.push(0, 0, TZ + s * 2.5, s > 0 ? 0 : Math.PI); archWindow(k, 0, P + NH + 3, 1.4, 3); k.pop(); }
+  k.box(5.6, 0.5, 5.6, 0, P + NH + 8, TZ, C.gold, { r: 0.12 });
+  spire(k, 0, P + NH + 8.5, TZ, 3.2, 10, roof);
+  // Hậu cung bán nguyệt phía sau
+  k.addGeo(new THREE.CylinderGeometry(NW / 2, NW / 2, NH - 1, 14, 1, false, Math.PI / 2, Math.PI), stone, { y: P + (NH - 1) / 2, z: -NL / 2 });
+  k.addGeo(new THREE.ConeGeometry(NW / 2 + 0.6, 4.5, 14, 1, false, Math.PI / 2, Math.PI), roof, { y: P + NH - 1 + 2.25, z: -NL / 2 });
+  // Trụ chống + cửa sổ vòm dọc hai bên
+  for (const s of [-1, 1]) {
+    for (let i = 0; i < 5; i++) {
+      const z = NL / 2 - 4 - i * 4;
+      if (Math.abs(z - TZ) < 4) continue;
+      k.box(1.0, 8.5, 1.6, s * (NW / 2 + 3.8), P, z - 2, stone2, { r: 0.2 });
+      k.box(0.9, 1.2, 0.9, s * (NW / 2 + 3.8), P + 8.5, z - 2, roof, { r: 0.3 });
+      k.push(s * (NW / 2 + 3.42), 0, z, s * Math.PI / 2); archWindow(k, 0, P + 1.6, 1.6, 3.6); k.pop();
+      k.push(s * (NW / 2 + 0.02), 0, z, s * Math.PI / 2); archWindow(k, 0, P + 7.6, 1.3, 2.6); k.pop();
+    }
+  }
+  // Mặt tiền: hai tháp, cửa vòm lớn, cửa sổ hoa hồng
+  const TW = 5, TH = 21, FZ = NL / 2;
+  for (const s of [-1, 1]) {
+    const tx = s * (NW / 2 + 1.6);
+    k.box(TW, TH, TW, tx, P, FZ - 1.2, stone, { r: 0.25, a: 0.1, b: 0.55 });
+    for (const y of [7, 14]) k.box(TW + 0.4, 0.4, TW + 0.4, tx, P + y, FZ - 1.2, stone2, { r: 0.1 });
+    k.box(TW + 0.6, 0.6, TW + 0.6, tx, P + TH, FZ - 1.2, C.gold, { r: 0.15 });
+    for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) spire(k, tx + dx * 2.1, P + TH + 0.6, FZ - 1.2 + dz * 2.1, 0.45, 2.6, roof, 6);
+    spire(k, tx, P + TH + 0.6, FZ - 1.2, 2.6, 12, roof);
+    k.push(tx, 0, FZ + 1.3);
+    archWindow(k, 0, P + 8.5, 1.4, 3.6);
+    archWindow(k, 0, P + 15.2, 1.6, 3.6);
+    k.box(TW - 1.2, 0.5, 0.3, 0, P + 18.9, 0.05, C.gold, { r: 0.08 });
+    k.pop();
+  }
+  k.push(0, 0, FZ);
+  // Cửa vòm chính
+  const portal = new THREE.ExtrudeGeometry(pointedArch(6.2, 7.2), { depth: 0.9, bevelEnabled: false });
+  k.addGeo(portal, stone2, { y: P, z: -0.1 });
+  const door = new THREE.ExtrudeGeometry(pointedArch(4.4, 5.8), { depth: 0.2, bevelEnabled: false });
+  k.addGeo(door, C.brick, { y: P, z: 0.75 });
+  k.box(0.12, 4.2, 0.12, 0, P, 1.0, C.gold, { r: 0.02 });
+  for (const x of [-1.0, 1.0]) k.cyl(0.09, 0.09, 0.12, x * 0.4, P + 2.3, 1.02, C.gold, { rx: Math.PI / 2 });
+  for (const x of [-3.6, 3.6]) k.cyl(0.32, 0.36, 7.2, x, P, 0.55, C.white, { seg: 10 });
+  // Cửa sổ hoa hồng
+  const RY = P + 10.6;
+  k.addGeo(new THREE.CylinderGeometry(2.6, 2.6, 0.4, 24), stone2, { rx: Math.PI / 2, y: RY, z: 0.15 });
+  k.addGeo(new THREE.CylinderGeometry(2.2, 2.2, 0.2, 24), null, { glass: true, rx: Math.PI / 2, y: RY, z: 0.3 });
+  for (let i = 0; i < 6; i++) k.addGeo(new THREE.BoxGeometry(0.14, 4.3, 0.14), C.gold, { rz: (i * Math.PI) / 6, y: RY, z: 0.44 });
+  k.addGeo(new THREE.CylinderGeometry(0.6, 0.6, 0.3, 12), C.gold, { rx: Math.PI / 2, y: RY, z: 0.46 });
+  // Đầu hồi mặt tiền + thánh giá
+  const gable = new THREE.ExtrudeGeometry(new THREE.Shape([new THREE.Vector2(-NW / 2, 0), new THREE.Vector2(NW / 2, 0), new THREE.Vector2(0, rh + 0.6)]), { depth: 0.6, bevelEnabled: false });
+  k.addGeo(gable, stone, { y: P + NH, z: -0.75 });
+  k.box(0.35, 2.6, 0.35, 0, P + NH + rh + 0.4, 0.2, C.gold, { r: 0.05 });
+  k.box(1.5, 0.35, 0.35, 0, P + NH + rh + 2.0, 0.2, C.gold, { r: 0.05 });
+  // Dãy tượng/hốc vòm ngang mặt tiền
+  for (let i = 0; i < 5; i++) {
+    if (i === 2) continue;
+    const g2 = new THREE.ExtrudeGeometry(pointedArch(0.7, 1.1), { depth: 0.15, bevelEnabled: false });
+    k.addGeo(g2, C.dgrey, { x: -3.6 + i * 1.8, y: P + 7.45, z: 0.05 });
+  }
+  k.pop();
+  return { mesh: k.build(kitMaterial), W: NW + 9, D: NL + 6, door: new THREE.Vector3(0, 0, NL / 2 + 3.5) };
+}

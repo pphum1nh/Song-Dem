@@ -8,7 +8,7 @@
 <script type="module">
 import * as THREE from 'three';
 import { loadGLTF } from './gltf-load.js';
-import { buildHouseKay, buildCasinoKay, casinoLights } from './kaybuild.js';
+import { buildHouseKay, buildCasinoKay, casinoLights, buildCathedral } from './kaybuild.js';
 import { createCharacter } from './character.js';
 
 const q = new URLSearchParams(location.search);
@@ -20,7 +20,7 @@ r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = night ? 1.2
 r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap;
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(night ? '#1a0d2a' : '#9fd0f0');
-scene.fog = new THREE.Fog(scene.background, 90, 220);
+scene.fog = new THREE.Fog(scene.background, 120, 300);
 const cam = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.1, 500);
 
 await document.fonts.load('80px Bungee', 'SÒNG ĐÊM');
@@ -78,8 +78,14 @@ tile('bench', -54, 7, Math.PI / 2); tile('streetlight', -31, 17.8, Math.PI / 2);
 tile('car_taxi', 6, 21.6, -Math.PI / 2).position.y = 0.86; tile('car_sedan', -70, 26.4, Math.PI / 2).position.y = 0.86;
 tile('building_B_withoutBase', 36, -6, -Math.PI / 2); tile('base', 36, -6); tile('base', 36, 6);
 
+// Nhà thờ lớn
+for (let tx = -1; tx <= 1; tx++) for (let tz = -1; tz <= 2; tz++) tile('base', 96 + tx * 12, tz * 12 - 4);
+const cath = buildCathedral(mat); cath.mesh.position.set(96, 0.6, -4); scene.add(cath.mesh);
+for (const [x, z] of [[84, 10], [108, 10], [84, -16], [108, -16]]) tile('bush', x, z, x, 6 * 1.5);
+tile('streetlight', 88, 22, Math.PI / 2); tile('streetlight', 104, 22, Math.PI / 2);
+
 // Nhân vật để so tỉ lệ
-for (const [name, x, z, ry] of [['Businessman', -46.5, 7.4, 0.5], ['Businesswoman', 1.5, 13.5, 0.3], ['Police', 7.5, 17, -0.6]]) {
+for (const [name, x, z, ry] of [['Teacher', 95, 16.5, 0.3], ['Businessman', -46.5, 7.4, 0.5], ['Businesswoman', 1.5, 13.5, 0.3], ['Police', 7.5, 17, -0.6]]) {
   const c = await createCharacter(name); c.animate(0, 0, 0, 0); c.object.position.set(x, 0.6, z); c.object.rotation.y = ry;
   c.object.traverse((o) => { if (o.isMesh) o.castShadow = true; }); scene.add(c.object);
 }
@@ -88,7 +94,7 @@ for (const [name, x, z, ry] of [['Businessman', -46.5, 7.4, 0.5], ['Businesswoma
 const hemi = new THREE.HemisphereLight(night ? '#7b6bc8' : '#dfeeff', night ? '#2a1d33' : '#6b5d48', night ? 0.9 : 1.3); scene.add(hemi);
 const sun = new THREE.DirectionalLight(night ? '#9fb0ff' : '#fff1dc', night ? 0.7 : 2.6);
 sun.position.set(night ? -40 : 50, 80, night ? 30 : 60); sun.castShadow = true;
-Object.assign(sun.shadow.camera, { left: -70, right: 70, top: 60, bottom: -60, far: 250 }); sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.05;
+Object.assign(sun.shadow.camera, { left: -70, right: 140, top: 60, bottom: -60, far: 300 }); sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.05;
 scene.add(sun);
 if (night) {
   for (const [x, y, z, c, i] of [[0, 5, 10, '#ffd28a', 120], [-12, 6, 12, '#ff5aa8', 60], [12, 6, 12, '#ff5aa8', 60], [-46.5, 3, 5.5, '#ffd28a', 25]]) { const l = new THREE.PointLight(c, i, 30, 1.6); l.position.set(x, y, z); scene.add(l); }
@@ -99,6 +105,9 @@ const views = {
   casinoClose: [[-10, 4, 24], [0, 6, 5]],
   house: [[-30, 11, 26], [-48, 4, -2]],
   overview: [[-10, 48, 72], [-22, 4, -2]],
+  cathedral: [[122, 14, 52], [96, 13, -4]],
+  cathedralSide: [[140, 22, -30], [96, 12, -4]],
+  cathedralFront: [[92, 4, 34], [96, 12, 6]],
 };
 const [p, t] = views[view] || views.casino;
 cam.position.set(...p); cam.lookAt(...t);
