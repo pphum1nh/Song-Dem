@@ -14,12 +14,18 @@ Một lát cắt nhỏ của Sòng Đêm chuyển sang 3D cho điện thoại. C
 Người chơi đi từ nhà tới Sòng Đêm trong khi đồng hồ tự chạy. Nhà cho phép ngủ tới 7:00 hoặc nghỉ 1 giờ, làm thay đổi trạng thái đồng hồ và ánh sáng. Casino hiện thông báo bản thử.
 
 ## Bản đồ
-- Lưới 5×5 khối nhà, mỗi khối 40 m, đường rộng 12 m.
+- Dựng từ bộ KayKit City Builder Bits trên lưới ô 12 m: khối nhà 3×3 ô (36 m), đường rộng 1 ô.
+- Lưới 5×5 khối đi lại được, thêm một vòng tòa nhà bên ngoài để nhìn cho kín.
+- Có xe chạy vòng (lái bên phải, dừng khi người chơi đứng trước), xe đỗ ven đường và 10 người đi bộ trên vỉa hè.
 - Khối giữa: **Sòng Đêm**, có biển neon và đồng xu vàng xoay trên mái làm mốc.
 - Khối phía tây: **Nhà** có vườn, hàng rào và lối đi. Người chơi bắt đầu ở cửa nhà.
 - Khối phía đông: công viên có đài phun nước.
-- Các khối còn lại: cao ốc sinh ngẫu nhiên có hạt giống cố định, cửa sổ sáng về đêm.
-- Vòng cao ốc xa làm đường chân trời. Sương mù giấu mép bản đồ.
+- Các khối còn lại: tòa nhà KayKit, cửa sổ sáng về đêm.
+- Sương mù giấu mép bản đồ.
+
+## Nhân vật
+- 12 nhân vật từ bộ Vocations and Uniforms, chọn bằng nút góc trái trên.
+- Mô hình gốc ở tư thế chữ T và không có animation, nên dáng đứng, đi, chạy được tạo bằng cách xoay xương trong `character.js`.
 
 ## Thời gian
 - `20 giây thật = 1 phút trong game`. 1 giờ game bằng 20 phút thật.

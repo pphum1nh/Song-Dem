@@ -1,12 +1,15 @@
 import * as THREE from 'three';
-import { RoomEnvironment } from './vendor/RoomEnvironment.js';
+import { RoomEnvironment } from './vendor/addons/RoomEnvironment.js';
 import { GameClock } from './clock.js';
 import { Input } from './input.js';
+import { GLTFLoader } from './vendor/addons/loaders/GLTFLoader.js';
 import { buildWorld, groundHeight, LIMIT, PITCH } from './world.js';
 import { createSky } from './sky.js';
 import { Player } from './player.js';
+import { createLife } from './life.js';
+import { CHARACTERS, preload } from './character.js';
 
-const SAVE_KEY = 'songdem3d.v1';
+const SAVE_KEY = 'songdem3d.v2';
 const $ = (id) => document.getElementById(id);
 
 // ---------- Renderer / scene ----------
@@ -35,26 +38,33 @@ function resize() {
 addEventListener('resize', resize);
 resize();
 
-const world = buildWorld(scene);
+const loadingText = $('loading');
+let saved = null;
+try { saved = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch (_) {}
+const charName = saved && CHARACTERS[saved.c] ? saved.c : 'Businessman';
+preload(charName);
+loadingText.textContent = 'Đang tải thành phố…';
+const kit = await new GLTFLoader().loadAsync('assets/citykit.glb');
+const world = buildWorld(scene, kit);
 const sky = createSky(scene);
 const player = new Player(scene);
 const clock = new GameClock(21 * 60);
+loadingText.textContent = 'Đang tải nhân vật…';
+await player.setCharacter(charName);
+const life = await createLife(scene, kit, charName);
 
 // ---------- Lưu / tải ----------
 const home = world.interactables.find((i) => i.id === 'house');
-player.position.set(home.x, 0.25, home.z + 2.5);
+player.position.set(home.x, groundHeight(home.x, home.z + 2.5), home.z + 2.5);
 player.heading = 0;
-try {
-  const s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
-  if (s && Number.isFinite(s.t)) {
-    clock.totalMinutes = s.t;
-    if (Number.isFinite(s.x) && Number.isFinite(s.z)) player.position.set(s.x, groundHeight(s.x, s.z), s.z);
-    if (Number.isFinite(s.h)) player.heading = s.h;
-  }
-} catch (_) {}
+if (saved && Number.isFinite(saved.t)) {
+  clock.totalMinutes = saved.t;
+  if (Number.isFinite(saved.x) && Number.isFinite(saved.z)) player.position.set(saved.x, groundHeight(saved.x, saved.z), saved.z);
+  if (Number.isFinite(saved.h)) player.heading = saved.h;
+}
 function save() {
   try {
-    localStorage.setItem(SAVE_KEY, JSON.stringify({ t: clock.totalMinutes, x: player.position.x, z: player.position.z, h: player.heading }));
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ t: clock.totalMinutes, x: player.position.x, z: player.position.z, h: player.heading, c: player.charName }));
   } catch (_) {}
 }
 setInterval(save, 3000);
@@ -62,7 +72,7 @@ addEventListener('pagehide', save);
 document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
 
 // ---------- Camera ----------
-const cam = { yaw: 0, pitch: 0.5, dist: 12, curDist: 12 };
+const cam = { yaw: 0, pitch: 0.42, dist: 8.5, curDist: 8.5 };
 const ray = new THREE.Raycaster();
 const camTarget = new THREE.Vector3();
 const camWant = new THREE.Vector3();
@@ -124,6 +134,7 @@ function openModal(title, body, actions) {
     b.addEventListener('click', a.run);
     ui.modalActions.appendChild(b);
   });
+  ui.modalActions.classList.remove('grid2');
   ui.modal.hidden = false;
   ui.modalActions.firstChild?.focus();
 }
@@ -152,6 +163,16 @@ function enter(target) {
   }
 }
 ui.action.addEventListener('click', () => enter(nearby));
+$('who').addEventListener('click', () => {
+  openModal('Chọn nhân vật', 'Nhân vật: bộ "Vocations and Uniforms" (CC BY-SA). Thành phố: KayKit City Builder Bits của Kay Lousberg (CC0).', [
+    ...Object.entries(CHARACTERS).map(([key, label]) => ({
+      label: (key === player.charName ? '✓ ' : '') + label,
+      run: async () => { closeModal(); await player.setCharacter(key); save(); },
+    })),
+    { label: 'Đóng', run: closeModal },
+  ]);
+  ui.modalActions.classList.add('grid2');
+});
 input.onAction = () => { if (modalOpen) return; enter(nearby); };
 addEventListener('keydown', (e) => { if (e.code === 'Escape' && modalOpen) closeModal(); });
 
@@ -179,7 +200,8 @@ function frame(now) {
   right.set(Math.cos(cam.yaw), 0, -Math.sin(cam.yaw));
   const mx = right.x * mv.x + fwd.x * mv.y;
   const mz = right.z * mv.x + fwd.z * mv.y;
-  player.update(dt, mx, mz, mv.run, world.colliders, groundHeight, LIMIT);
+  player.update(dt, elapsed, mx, mz, mv.run, world.colliders, groundHeight, LIMIT);
+  life.update(dt, elapsed, player.position, sky.night);
 
   sky.update(clock.minuteOfDay, player.position);
   scene.environmentIntensity = 0.18 + 0.5 * (1 - sky.night);
@@ -207,4 +229,4 @@ document.body.classList.add('ready');
 requestAnimationFrame((t) => { last = t; frame(t); });
 
 // Móc kiểm thử (dùng cho chụp màn hình tự động)
-window.__songdem = { renderer, clock, player, cam, setMinute: (m) => { clock.totalMinutes = Math.floor(clock.totalMinutes / 1440) * 1440 + m; }, PITCH };
+window.__songdem = { renderer, scene, life, clock, player, cam, setMinute: (m) => { clock.totalMinutes = Math.floor(clock.totalMinutes / 1440) * 1440 + m; }, PITCH };

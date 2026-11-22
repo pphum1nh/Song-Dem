@@ -53,6 +53,12 @@
   #speed { position: fixed; z-index: 2; top: calc(var(--sat) + 12px); right: calc(var(--sar) + 12px);
     width: 48px; height: 48px; border-radius: 12px; border: 1px solid var(--border);
     background: var(--panel); color: var(--text); font-weight: 800; font-size: 15px; font-variant-numeric: tabular-nums; }
+  #who { position: fixed; z-index: 2; top: calc(var(--sat) + 12px); left: calc(var(--sal) + 12px);
+    width: 48px; height: 48px; border-radius: 12px; border: 1px solid var(--border);
+    background: var(--panel); color: var(--text); display: grid; place-items: center; }
+  #who svg { width: 22px; height: 22px; }
+  .actions.grid2 { grid-template-columns: 1fr 1fr; max-height: 60vh; overflow: auto; }
+  .actions.grid2 .btn:last-child { grid-column: 1 / -1; }
   #speed[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 
   /* Gợi ý điều khiển */
@@ -95,7 +101,7 @@
   .btn { min-height: 50px; border-radius: 12px; border: 1px solid var(--border); background: var(--panel-2);
     color: var(--text); font: 700 16px/1 inherit; font-family: inherit; }
   .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
-  .btn:focus-visible, #action:focus-visible, #speed:focus-visible { outline: 3px solid var(--pink); outline-offset: 2px; }
+  .btn:focus-visible, #action:focus-visible, #speed:focus-visible, #who:focus-visible { outline: 3px solid var(--pink); outline-offset: 2px; }
   @keyframes rise { from { transform: translateY(16px); opacity: 0; } to { transform: none; opacity: 1; } }
 
   #fade { position: fixed; inset: 0; z-index: 6; background: #000; opacity: 0; pointer-events: none; transition: opacity .4s ease; }
@@ -119,6 +125,7 @@
   <span id="clock-time">21:00</span>
   <span id="clock-day">Ngày 1</span>
 </div>
+<button id="who" type="button" aria-label="Chọn nhân vật" title="Chọn nhân vật"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 21a8 8 0 0 1 16 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
 <button id="speed" type="button" aria-pressed="false" aria-label="Tốc độ thời gian" title="Tua nhanh thời gian">×1</button>
 <div id="hint" class="hud"><b>Kéo bên trái</b> để đi, đẩy hết cỡ để chạy · <b>Kéo bên phải</b> để xoay. Sòng Đêm ở phía đông, theo đồng xu vàng.</div>
 
@@ -138,7 +145,7 @@
   </div>
 </div>
 <div id="fade"></div>
-<div id="loading">Đang dựng thành phố…</div>
+<div id="loading">Đang tải…</div>
 
 <script>
   window.addEventListener('error', function (e) {
