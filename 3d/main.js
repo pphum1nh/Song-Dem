@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { RoomEnvironment } from './vendor/addons/RoomEnvironment.js';
 import { GameClock } from './clock.js';
 import { Input } from './input.js';
-import { GLTFLoader } from './vendor/addons/loaders/GLTFLoader.js';
+import { loadGLTF } from './gltf-load.js';
 import { buildWorld, groundHeight, LIMIT, PITCH } from './world.js';
 import { createSky } from './sky.js';
 import { Player } from './player.js';
@@ -220,7 +220,7 @@ let saved = null;
 try { saved = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch (_) {}
 const charName = saved && CHARACTERS[saved.c] ? saved.c : 'Businessman';
 // Bắt đầu tải ngay khi mở trang, trong lúc người chơi còn ở menu
-const kitPromise = new GLTFLoader().loadAsync('assets/citykit.json');
+const kitPromise = loadGLTF('assets/citykit.json');
 preload(charName).catch(() => {});
 kitPromise.catch(() => {});
 

@@ -76,7 +76,7 @@ export function createMenu({ summary, has2D }) {
       const t0 = performance.now();
       const step = (i, frac) => { stepEl.textContent = steps[Math.min(i, steps.length - 2)]; bar.style.width = Math.round(frac * 92) + '%'; };
       await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 30)));
-      try { await task(step); } catch (e) { stepEl.textContent = 'Không tải được: ' + (e.message || e); throw e; }
+      try { await task(step); } catch (e) { stepEl.textContent = 'Không tải được: ' + String(e.message || e).slice(0, 90) + '. Hãy tải lại trang.'; throw e; }
       const left = minMs - (performance.now() - t0);
       if (left > 0) await new Promise((r) => setTimeout(r, left));
       stepEl.textContent = steps[steps.length - 1]; bar.style.width = '100%';

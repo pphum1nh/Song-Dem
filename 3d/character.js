@@ -1,7 +1,7 @@
 // Nhân vật từ bộ "Vocations and Uniforms" (CC BY-SA). Mô hình gốc ở tư thế chữ T, không có
 // animation, nên dáng đi được tạo bằng cách xoay xương theo trục của nhân vật.
 import * as THREE from 'three';
-import { GLTFLoader } from './vendor/addons/loaders/GLTFLoader.js';
+import { loadGLTF } from './gltf-load.js';
 import { clone as cloneSkinned } from './vendor/addons/utils/SkeletonUtils.js';
 
 export const CHARACTERS = {
@@ -11,10 +11,9 @@ export const CHARACTERS = {
 };
 const SCALE = 1.88; // mô hình gốc cao ~0,95 → ~1,78 m
 
-const loader = new GLTFLoader();
 const cache = new Map();
 export function preload(name) {
-  if (!cache.has(name)) cache.set(name, loader.loadAsync(`assets/chars/${name}.json`));
+  if (!cache.has(name)) cache.set(name, loadGLTF(`assets/chars/${name}.json`));
   return cache.get(name);
 }
 
