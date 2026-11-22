@@ -45,8 +45,10 @@ export function buildInterior(scene, furnGltf, kitMaterial, colliders, interacta
   const place = (name, x, z, ry = 0, y = 0, collide = true) => {
     const src = kitScene.getObjectByName(name);
     if (!src) return null;
-    const o = src.clone(true);
-    o.scale.multiplyScalar(F); o.position.set(x, y, z); o.rotation.y = ry;
+    // Bọc trong nhóm: node gốc của mô hình nén giữ phần bù vị trí/tỉ lệ, không được ghi đè
+    const o = new THREE.Group();
+    o.add(src.clone(true));
+    o.scale.setScalar(F); o.position.set(x, y, z); o.rotation.y = ry;
     group.add(o);
     if (collide) {
       group.updateMatrixWorld(true);

@@ -48,4 +48,13 @@ Người chơi đi từ nhà tới Sòng Đêm trong khi đồng hồ tự chạ
 - **Điện thoại:** giao diện như bản 2D, gồm Ví của tôi, BruhBank, Bản đồ (chỉ đường bằng cột sáng) và Cài đặt (tua giờ, về menu).
 - **BruhBank:** ATM mở 24/7 (rút tối đa $2.000 mỗi lần) và quầy giao dịch mở 8:00–17:00 theo giờ trong game.
 - **Trong nhà:** phòng kiểu nhà búp bê với nội thất KayKit Furniture. Nằm giường để ngủ tới 7:00 hoặc nghỉ 1 tiếng.
-- **Chưa có:** bên trong casino và cách kiếm tiền. Đây là bước kế tiếp.
+- **Sòng Đêm (bên trong):** 6 trò theo luật bản 2D. Mỗi ván tốn 10 phút trong game.
+  - Blackjack: Blackjack trả 3 ăn 2, nhà cái dừng ở 17.
+  - Poker Texas Hold'em: bàn $5/$10, đấu 3 tay máy.
+  - Xếp bài Vegas: mua ván $52, mỗi lá lên đích +$5.
+  - Đua ngựa: 6 ngựa, tỉ lệ đổi theo chặng.
+  - Roulette: một ô số 0, số đơn 35 ăn 1.
+  - Máy slot: 3 cuộn, 777 ×200.
+- **Ngân hàng Đêm (app điện thoại):** vay $500 trả $600, nợ tối đa $3.000. Quá 5 ngày không trả sẽ bị siết nợ, trừ vào tài khoản rồi tới ví.
+- **Bố cục thành phố:** casino ở giữa. Khu dân cư phía tây gồm 16 nhà phố, nhà người chơi là một căn trong đó. BruhBank và siêu thị có bãi đỗ xe ở phía nam, công viên ở phía đông, ngoài rìa là cỏ và cây.
+- **Chưa có:** bên trong siêu thị.

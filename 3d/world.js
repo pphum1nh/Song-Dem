@@ -1,7 +1,7 @@
 // Thành phố dựng từ bộ KayKit City Builder Bits (CC0, Kay Lousberg) trên lưới ô 12 m.
 // Sòng Đêm, nhà và đài phun nước vẫn là mô hình tự dựng.
 import * as THREE from 'three';
-import { buildHouseKay, buildCasinoKay, casinoLights, buildBankKay } from './kaybuild.js';
+import { buildCasinoKay, casinoLights, buildBankKay, buildTownhouse, HOUSE_STYLES, buildMarket, treeGeometry } from './kaybuild.js';
 
 export const S = 6;                       // 1 đơn vị KayKit = 6 m (một ô 2×2 = 12 m)
 export const TILE = 12, BLOCK = 36, ROAD = 12, PITCH = BLOCK + ROAD, GRID = 1; // 3×3 khối đi lại được
@@ -49,7 +49,7 @@ export function radialTex(inner = 'rgba(255,255,255,1)', outer = 'rgba(255,255,2
   });
 }
 
-function labelSprite(text, color = '#ffffff', bg = 'rgba(20,10,24,.82)') {
+export function labelSprite(text, color = '#ffffff', bg = 'rgba(20,10,24,.82)') {
   const tex = canvasTex(512, 128, (g, w) => {
     g.font = '800 64px -apple-system, "Segoe UI", Roboto, sans-serif';
     const tw = g.measureText(text).width + 64;
@@ -160,7 +160,7 @@ export function buildWorld(scene, kitGltf) {
   }
 
   // Mặt đất bên ngoài
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(1200, 1200), new THREE.MeshStandardMaterial({ color: '#3b3a42', roughness: 0.95 }));
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(1200, 1200), new THREE.MeshStandardMaterial({ color: '#5f9a4c', roughness: 1 }));
   ground.rotation.x = -Math.PI / 2; ground.position.y = 0.05;
   scene.add(ground);
 
@@ -194,7 +194,11 @@ export function buildWorld(scene, kitGltf) {
   const all = [...narrow, 'building_E_withoutBase', 'building_F_withoutBase', 'building_G_withoutBase', 'building_H_withoutBase'];
   const pick = (arr) => arr[Math.floor(rnd() * arr.length)];
   const lampSpots = [];
-  const special = (i, j) => j === 0 && i >= -1 && i <= 1;
+  // Loại khu của từng khối 3×3 ô
+  const BLOCK_TYPE = { '0,0': 'casino', '-1,0': 'res', '-1,-1': 'res', '1,0': 'park', '1,1': 'market' };
+  const typeOf = (i, j) => BLOCK_TYPE[`${i},${j}`] || 'city';
+  const special = (i, j) => typeOf(i, j) !== 'city';
+  const trees = []; // [x, z, scale, kind]
 
   function addBuilding(name, x, z, rot, collide) {
     const variant = rnd() < 0.62 ? 'warm' : rnd() < 0.5 ? 'cool' : 'off';
@@ -309,34 +313,72 @@ export function buildWorld(scene, kitGltf) {
     });
   }
 
-  // ---------- NHÀ (kiểu KayKit) ----------
+  // ---------- KHU DÂN CƯ (nhà người chơi là một căn trong đó) ----------
   const grassMat = new THREE.MeshStandardMaterial({ color: '#5a8f45', roughness: 1 });
-  {
-    const cx = -PITCH, cz = 0, hz = cz - 4;
-    const grass = new THREE.Mesh(new THREE.BoxGeometry(BLOCK - 2, 0.06, BLOCK - 2), grassMat);
-    grass.position.set(cx, SIDEWALK + 0.02, cz); scene.add(grass);
-    const h = buildHouseKay(litWarm);
-    h.mesh.position.set(cx, SIDEWALK, hz); scene.add(h.mesh); occluders.push(h.mesh);
-    const fz = hz + 4; // mặt tiền nhà
-    box(cx - 5.5, cx + 5.5, hz - 4, hz + 4);
-    for (const x of [-1.8, 1.8]) box(cx + x - 0.2, cx + x + 0.2, fz + 2.0, fz + 2.4);
-    platforms.push({ minX: cx - 2.1, maxX: cx + 2.1, minZ: fz, maxZ: fz + 2.4, y: SIDEWALK + 0.5 });
-    platforms.push({ minX: cx - 1.2, maxX: cx + 1.2, minZ: fz + 2.35, maxZ: fz + 3.05, y: SIDEWALK + 0.25 });
-    const fenceZ = hz + 16.6;
-    box(cx - 16.7, cx - 1.8, fenceZ - 0.15, fenceZ + 0.15);
-    box(cx + 1.8, cx + 16.7, fenceZ - 0.15, fenceZ + 0.15);
-    box(cx + 2.4, cx + 2.8, fenceZ - 1.0, fenceZ - 0.2); // hộp thư
-    for (const [x, z, sc] of [[-12, -12, 1.7], [12, -13, 1.5], [-13, 6, 1.6], [12, 7, 1.8], [-8, -15, 1.2]]) {
-      place('bush', cx + x, SIDEWALK, cz + z, rnd() * 6, S * sc);
-      box(cx + x - 0.6, cx + x + 0.6, cz + z - 0.6, cz + z + 0.6);
+  for (const [i, j] of [[-1, 0], [-1, -1]]) {
+    const cx = i * PITCH, cz = j * PITCH;
+    const lawn = new THREE.Mesh(new THREE.BoxGeometry(BLOCK - 3.4, 0.05, BLOCK - 3.4), grassMat);
+    lawn.position.set(cx, SIDEWALK + 0.02, cz); scene.add(lawn);
+    let n = 0;
+    for (let tx = -1; tx <= 1; tx++) for (let tz = -1; tz <= 1; tz++) {
+      const x = cx + tx * TILE, z = cz + tz * TILE;
+      if (tx === 0 && tz === 0) {
+        for (const [ox, oz] of [[-3, -3], [3, -2.5], [-2.5, 3], [3.2, 3.4]]) trees.push([x + ox, z + oz, 0.9 + rnd() * 0.4, rnd() < 0.6 ? 0 : 1]);
+        place('bench', x, SIDEWALK, z, Math.PI / 2);
+        continue;
+      }
+      const corner = tx !== 0 && tz !== 0;
+      const nx = corner ? 0 : tx, nz = tz;
+      const rot = Math.atan2(nx, nz);
+      const isPlayer = i === -1 && j === 0 && tx === 1 && tz === 0;
+      const style = isPlayer ? HOUSE_STYLES[0] : HOUSE_STYLES[1 + ((n + (j + 2) * 3) % (HOUSE_STYLES.length - 1))];
+      const hx = x - nx * 1.4, hz = z - nz * 1.4;
+      const h = buildTownhouse(litWarm, style, n + (isPlayer ? 1 : 0));
+      h.mesh.position.set(hx, SIDEWALK, hz); h.mesh.rotation.y = rot;
+      scene.add(h.mesh); occluders.push(h.mesh);
+      const along = nx !== 0;
+      const hw = (along ? h.D : h.W) / 2, hd = (along ? h.W : h.D) / 2;
+      box(hx - hw, hx + hw, hz - hd, hz + hd);
+      // Cây ở góc sân trước
+      const tX = nz, tZ = -nx; // hướng dọc theo mặt phố
+      if (!corner) trees.push([x + nx * 3.6 + tX * 4.6, z + nz * 3.6 + tZ * 4.6, 0.8 + rnd() * 0.3, 0]);
+      if (isPlayer) {
+        const c = Math.cos(rot), sn = Math.sin(rot);
+        const lx = h.doorX, lz = h.D / 2 + 1.5;
+        const dx = hx + lx * c + lz * sn, dz = hz - lx * sn + lz * c;
+        interactables.push({ id: 'house', x: dx, z: dz, r: 2.2, label: 'Vào nhà', spawnX: dx + nx * 1.2, spawnZ: dz + nz * 1.2, heading: rot });
+        const label = labelSprite('NHÀ', '#ffe2a8');
+        label.position.set(hx, SIDEWALK + 11.5, hz); scene.add(label);
+      }
+      n++;
     }
-    place('bench', cx - 9, SIDEWALK, cz + 4, Math.PI / 2);
-    const porch = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 8), new THREE.MeshBasicMaterial({ color: '#ffe2a0', toneMapped: false }));
-    porch.position.copy(h.lights[0]).add(h.mesh.position); scene.add(porch);
-    const label = labelSprite('NHÀ', '#ffe2a8');
-    label.position.set(cx, SIDEWALK + 14, hz); scene.add(label);
-    interactables.push({ id: 'house', x: cx, z: fz + 2.6, r: 2.4, label: 'Vào nhà' });
-    updaters.push((t, night) => { porch.material.color.setRGB(1, 0.88, 0.63).multiplyScalar(0.35 + 0.9 * night); });
+  }
+
+  // ---------- SIÊU THỊ + BÃI ĐỖ XE ----------
+  {
+    const cx = PITCH, cz = PITCH;
+    const m = buildMarket(litWarm);
+    const sz = cz + BLOCK / 2 - m.D / 2 - 1.6;
+    m.mesh.position.set(cx, SIDEWALK, sz); m.mesh.rotation.y = Math.PI; scene.add(m.mesh); occluders.push(m.mesh);
+    box(cx - m.W / 2, cx + m.W / 2, sz - m.D / 2, sz + m.D / 2);
+    const lot = new THREE.Mesh(new THREE.BoxGeometry(BLOCK - 3, 0.04, 18), new THREE.MeshStandardMaterial({ color: '#4a4a52', roughness: 0.95 }));
+    lot.position.set(cx, SIDEWALK + 0.02, cz - 6.5); scene.add(lot);
+    const lineMat = new THREE.MeshBasicMaterial({ color: '#e8e8e8' });
+    const lines = new THREE.InstancedMesh(new THREE.BoxGeometry(0.16, 0.02, 4.8), lineMat, 40);
+    let li = 0;
+    const carNames2 = ['car_sedan', 'car_hatchback', 'car_stationwagon', 'car_taxi'];
+    for (const row of [-12.5, -3.5]) for (let k2 = 0; k2 < 11; k2++) {
+      const x = cx - 15 + k2 * 3;
+      if (li < 40) { m4.makeTranslation(x, SIDEWALK + 0.05, cz + row); lines.setMatrixAt(li++, m4); }
+      if (k2 < 10 && rnd() < 0.55) {
+        const px = x + 1.5, pz = cz + row;
+        place(carNames2[Math.floor(rnd() * 4)], px, SIDEWALK + 0.42, pz, rnd() < 0.5 ? 0 : Math.PI);
+        box(px - 1.2, px + 1.2, pz - 2.6, pz + 2.6);
+      }
+    }
+    lines.count = li; scene.add(lines);
+    interactables.push({ id: 'market', x: cx, z: sz - m.D / 2 - 1.8, r: 2.6, label: 'Vào siêu thị' });
+    for (const x of [-16, 16]) trees.push([cx + x, cz + 15, 1, 0]);
   }
 
   // ---------- NGÂN HÀNG BRUHBANK ----------
@@ -369,6 +411,7 @@ export function buildWorld(scene, kitGltf) {
     const spout = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.5, 2.2, 12), stone);
     spout.position.set(cx, SIDEWALK + 1.5, cz); scene.add(spout);
     box(cx - 4.2, cx + 4.2, cz - 4.2, cz + 4.2);
+    for (const [ox, oz] of [[-14, -14], [14, -14], [-14, 14], [14, 14], [0, -15], [0, 15], [-15, 0], [15, 0]]) { trees.push([cx + ox, cz + oz, 1.1 + rnd() * 0.4, rnd() < 0.5 ? 0 : 1]); box(cx + ox - 0.4, cx + ox + 0.4, cz + oz - 0.4, cz + oz + 0.4); }
     for (let k = 0; k < 12; k++) {
       const a = (k / 12) * Math.PI * 2;
       const x = cx + Math.cos(a) * 12, z = cz + Math.sin(a) * 12;
@@ -376,6 +419,21 @@ export function buildWorld(scene, kitGltf) {
       place('bush', x, SIDEWALK, z, rnd() * 6, S * (1.4 + rnd() * 0.5));
       box(x - 0.6, x + 0.6, z - 0.6, z + 0.6);
     }
+  }
+
+  // Cây ngoài rìa thành phố (trên nền cỏ) và dựng tất cả cây bằng instancing
+  for (let k2 = 0; k2 < 90; k2++) {
+    const a = rnd() * Math.PI * 2, rad = 150 + rnd() * 70;
+    trees.push([Math.cos(a) * rad, Math.sin(a) * rad, 1.4 + rnd() * 1.2, rnd() < 0.7 ? 0 : 1]);
+  }
+  for (const kind of [0, 1]) {
+    const list = trees.filter((t) => t[3] === kind);
+    const im = new THREE.InstancedMesh(treeGeometry(kind), kitMat, list.length);
+    list.forEach(([x, z, sc], k2) => {
+      const y = Math.hypot(x, z) > 130 ? 0.05 : SIDEWALK;
+      m4.compose(p.set(x, y, z), q.setFromAxisAngle(yAxis, k2), new THREE.Vector3(sc, sc, sc)); im.setMatrixAt(k2, m4);
+    });
+    scene.add(im);
   }
 
   // ---------- Dựng InstancedMesh cho mọi thứ đã đặt ----------
@@ -414,7 +472,7 @@ export function buildWorld(scene, kitGltf) {
   }
 
   return {
-    colliders, occluders, interactables, lines, parked,
+    colliders, occluders, interactables, lines, parked, ground,
     update(t, night) {
       for (const w of windowMats) w.mat.emissiveIntensity = w.day + (w.night - w.day) * night;
       for (const u of updaters) u(t, night);

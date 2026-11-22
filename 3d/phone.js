@@ -1,13 +1,11 @@
 // Điện thoại (giao diện giống bản 2D): Ví của tôi, BruhBank, Bản đồ, Cài đặt.
+import { icon } from './icons.js';
+
 export const fmt = (n) => (n < 0 ? '−$' : '$') + Math.abs(Math.floor(n)).toLocaleString('vi-VN');
 const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 const ICON = {
-  wallet: '<svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18M16 14.5h2"/></svg>',
-  bank: '<svg viewBox="0 0 24 24"><path d="M3 9.5 12 4l9 5.5M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"/></svg>',
-  map: '<svg viewBox="0 0 24 24"><path d="M9 4 3 6.5v13L9 17l6 2.5 6-2.5V4l-6 2.5L9 4zM9 4v13M15 6.5v13"/></svg>',
-  set: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/></svg>',
-  clock: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>',
+  wallet: icon('credit-card'), bank: icon('bank'), map: icon('map'), set: icon('settings'), loan: icon('sycee'),
 };
 
 export function createPhone(ctx) {
@@ -49,6 +47,7 @@ export function createPhone(ctx) {
           <button class="papp" data-ph="wallet"><i style="background:linear-gradient(135deg,#5b7cff,#3a3fbf)">${ICON.wallet}</i>Ví của tôi</button>
           <button class="papp" data-ph="bank"><i style="background:linear-gradient(135deg,#4aa3ff,#1d4fb8)">${ICON.bank}</i>BruhBank</button>
           <button class="papp" data-ph="map"><i style="background:linear-gradient(135deg,#3fc7b0,#1d7a8a)">${ICON.map}</i>Bản đồ</button>
+          <button class="papp" data-ph="loan"><i style="background:linear-gradient(135deg,#4a1820,#120608)">${ICON.loan}${ctx.loan().debt ? '<span class="zbadge"></span>' : ''}</i>Ngân hàng Đêm</button>
           <button class="papp" data-ph="set"><i style="background:linear-gradient(135deg,#8a94a8,#454c5c)">${ICON.set}</i>Cài đặt</button>
         </div>`;
     } else if (view === 'wallet') {
@@ -68,6 +67,12 @@ export function createPhone(ctx) {
         <p>Chọn một địa điểm để bật chỉ đường. Cột sáng sẽ hiện ở đó.</p>
         <div class="ph-places">${ctx.places().map((pl) => `<button class="btn${wp === pl.id ? ' go' : ''}" data-wp="${pl.id}"><i style="background:${pl.color}"></i>${esc(pl.name)}</button>`).join('')}</div>
         ${wp ? '<button class="btn" data-act="clear-wp">Tắt chỉ đường</button>' : ''}</div>`;
+    } else if (view === 'loan') {
+      const L = ctx.loan();
+      scr.innerHTML = head('Ngân hàng Đêm', `<span class="ph-pill${L.debt ? ' closed' : ''}">${L.debt ? 'Đang nợ' : 'Không nợ'}</span>`) +
+        `<div class="ph-card"><p>Dư nợ hiện tại</p><b class="ph-big">${L.debt ? fmt(L.debt) : 'Không nợ'}</b>
+        <p>Mỗi lần vay ${fmt(500)}, phải trả ${fmt(600)}. Nợ tối đa ${fmt(3000)}.${L.debt ? ` Còn <b>${L.daysLeft} ngày</b> trước khi bị siết nợ (trừ vào tài khoản rồi tới ví).` : ' Quá 5 ngày không trả sẽ bị siết nợ.'}</p>
+        <div class="ph-two"><button class="btn go" data-act="borrow" ${L.debt + 600 > 3000 ? 'disabled' : ''}>Vay ${fmt(500)}</button><button class="btn" data-act="repay" ${L.debt ? '' : 'disabled'}>Trả nợ</button></div></div>`;
     } else if (view === 'set') {
       scr.innerHTML = head('Cài đặt') + `<div class="ph-list">
         <div class="ph-card"><h5>Tốc độ thời gian</h5><p>Mặc định 20 giây ngoài đời = 1 phút trong game. Tua ×30 để xem nhanh ngày và đêm.</p>
@@ -91,6 +96,8 @@ export function createPhone(ctx) {
     else if (a === 'menu') { close(); ctx.openMenu(); }
     else if (a === 'clear-wp') { ctx.setWaypoint(null); render(); }
     else if (a === 'route-bank') { ctx.setWaypoint('bank'); close(); }
+    else if (a === 'borrow') { ctx.borrow(); render(); }
+    else if (a === 'repay') { ctx.repay(); render(); }
   });
   addEventListener('keydown', (e) => { if (e.code === 'Escape' && !ov.hidden) { e.stopImmediatePropagation(); close(); } }, true);
 

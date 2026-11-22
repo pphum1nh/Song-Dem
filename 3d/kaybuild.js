@@ -324,3 +324,81 @@ export function buildBankKay(kitMaterial, signTexture) {
   const sign = new THREE.Mesh(new THREE.PlaneGeometry(7.6, 1.2), new THREE.MeshBasicMaterial({ map: signTexture, transparent: true, toneMapped: false }));
   return { mesh, sign, signY: P + 6.5, signZ: D / 2 + 2.45, W, D };
 }
+
+// ---------------- NHÀ PHỐ (khu dân cư) ----------------
+// Mặt tiền quay về +Z; gốc toạ độ ở giữa đáy nhà.
+export const HOUSE_STYLES = [
+  { wall: C.cream, wall2: C.peach, roof: C.brick, door: C.teal },     // nhà người chơi
+  { wall: C.sky, wall2: C.sky, roof: C.slate, door: C.white },
+  { wall: C.yellow, wall2: C.yellow, roof: C.terra, door: C.red },
+  { wall: C.salmon, wall2: C.salmon, roof: C.dgrey, door: C.white },
+  { wall: C.green, wall2: C.green, roof: C.brick, door: C.cream },
+  { wall: C.wgrey, wall2: C.white, roof: C.blue, door: C.gold },
+  { wall: C.teal, wall2: C.teal, roof: C.dgrey, door: C.yellow },
+];
+export function buildTownhouse(kitMaterial, style = HOUSE_STYLES[0], seed = 0) {
+  const k = new Builder();
+  const W = 8.6, D = 7, F1 = 3.1, F2 = 2.8, P = 0.4;
+  k.box(W + 0.4, P, D + 0.4, 0, 0, 0, C.lgrey, { r: 0.12 });
+  k.box(W, F1, D, 0, P, 0, style.wall, { r: 0.16 });
+  k.box(W + 0.3, 0.3, D + 0.3, 0, P + F1, 0, C.white, { r: 0.08 });
+  k.box(W, F2, D, 0, P + F1 + 0.3, 0, style.wall2, { r: 0.16 });
+  const top = P + F1 + 0.3 + F2;
+  k.box(W + 0.3, 0.25, D + 0.3, 0, top - 0.05, 0, C.white, { r: 0.08 });
+  const rh = 2.6, a = Math.atan2(rh, D / 2 + 0.2);
+  const shape = new THREE.Shape([new THREE.Vector2(-D / 2, 0), new THREE.Vector2(D / 2, 0), new THREE.Vector2(0, rh)]);
+  const attic = new THREE.ExtrudeGeometry(shape, { depth: W - 0.2, bevelEnabled: false });
+  attic.translate(0, 0, -(W - 0.2) / 2); attic.rotateY(Math.PI / 2);
+  k.addGeo(attic, style.wall2, { y: top + 0.2 });
+  const slabL = (D / 2 + 0.9) / Math.cos(a);
+  for (const s of [-1, 1]) {
+    k.addGeo(new RoundedBoxGeometry(W + 1.0, 0.42, slabL, 1, 0.12), style.roof,
+      { rx: s * a, y: top + 0.2 + rh - (slabL / 2) * Math.sin(a) + 0.26, z: s * (slabL / 2) * Math.cos(a) });
+  }
+  k.box(W + 1.1, 0.3, 0.5, 0, top + 0.2 + rh - 0.05, 0, style.roof, { r: 0.1 });
+  if (seed % 2 === 0) { k.box(0.9, 2.4, 0.9, W / 2 - 1.6, top + 0.6, -1.4, C.brick, { r: 0.08 }); k.box(1.2, 0.3, 1.2, W / 2 - 1.6, top + 3.0, -1.4, C.dgrey, { r: 0.06 }); }
+  k.push(0, 0, D / 2);
+  const doorX = seed % 3 === 0 ? -2.2 : seed % 3 === 1 ? 2.2 : 0;
+  kDoor(k, doorX, P + 0.05, 1.3, 2.4, style.door);
+  for (const x of [-2.6, 0, 2.6]) if (Math.abs(x - doorX) > 1.5) kWindow(k, x, P + 1.15, 1.4, 1.5, C.white, seed % 2 ? C.salmon : C.yellow);
+  for (const x of [-2.6, 0, 2.6]) kWindow(k, x, P + F1 + 0.85, 1.2, 1.4, C.white, seed % 2 ? C.yellow : C.salmon);
+  k.box(2.4, 0.22, 1.2, doorX, 0, 0.6, C.lgrey, { r: 0.05 });
+  k.box(2.6, 0.22, 1.3, doorX, P + 2.75, 0.55, C.white, { r: 0.06, rx: -0.15 });
+  k.pop();
+  for (const [ry, half] of [[Math.PI / 2, W / 2], [-Math.PI / 2, W / 2], [Math.PI, D / 2]]) {
+    k.push(Math.sin(ry) * half, 0, Math.cos(ry) * half, ry);
+    for (const x of ry === Math.PI ? [-2.2, 2.2] : [0]) { kWindow(k, x, P + 1.15, 1.3, 1.4, C.white, null); kWindow(k, x, P + F1 + 0.85, 1.2, 1.3, C.white, null); }
+    k.pop();
+  }
+  return { mesh: k.build(kitMaterial), W, D, doorX, P };
+}
+
+// ---------------- SIÊU THỊ ----------------
+export function buildMarket(kitMaterial) {
+  const k = new Builder();
+  const W = 30, D = 13, H = 6.5, P = 0.3;
+  k.box(W + 0.4, P, D + 0.4, 0, 0, 0, C.lgrey, { r: 0.1 });
+  k.box(W, H, D, 0, P, 0, C.brick, { r: 0.2, a: 0.3, b: 0.8 });
+  k.box(W + 0.5, 0.6, D + 0.5, 0, P + H, 0, C.yellow, { r: 0.15 });
+  for (const [x, z] of [[-9, -2], [-4, 2], [6, -1], [10, 3]]) k.box(2.2, 1.2, 1.6, x, P + H + 0.6, z, C.wgrey, { r: 0.12 });
+  k.push(0, 0, D / 2);
+  k.box(10, 4.4, 0.6, 0, P, 0.05, C.yellow, { r: 0.15 });
+  k.box(8.6, 3.8, 0.12, 0, P + 0.1, 0.4, null, { glass: true, r: 0 });
+  for (const x of [-2.9, 0, 2.9]) k.box(0.15, 3.8, 0.15, x, P + 0.1, 0.45, C.white, { r: 0.04 });
+  for (const x of [-11, 11]) { k.box(7, 3.0, 0.12, x, P + 0.9, 0.06, null, { glass: true, r: 0 }); k.box(7.4, 0.25, 0.5, x, P + 0.7, 0.2, C.white, { r: 0.06 }); }
+  k.box(12, 0.3, 3.0, 0, P + 4.6, 1.5, C.green, { r: 0.1 });
+  for (const x of [-5.6, 5.6]) k.cyl(0.18, 0.18, 4.6, x, 0, 2.8, C.white);
+  k.box(13, 2.0, 0.5, 0, P + H - 1.4, 0.3, C.green, { r: 0.2 });
+  k.pop();
+  return { mesh: k.build(kitMaterial), W, D, P, H };
+}
+
+// Cây thông thấp kiểu low-poly (trả về hình học đã tô màu để dùng InstancedMesh)
+export function treeGeometry(kind = 0) {
+  const k = new Builder();
+  k.cyl(0.18, 0.26, 1.4, 0, 0, 0, C.brick, { seg: 6 });
+  if (kind === 0) { k.cyl(0, 1.5, 2.6, 0, 1.0, 0, C.green, { seg: 7 }); k.cyl(0, 1.1, 2.0, 0, 2.6, 0, C.green, { seg: 7 }); }
+  else k.addGeo(new THREE.IcosahedronGeometry(1.5, 0), C.green, { y: 2.6 });
+  const mesh = k.build(null);
+  return mesh.geometry;
+}

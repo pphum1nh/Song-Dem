@@ -17,5 +17,9 @@
 - Trong game: `assets/chars/*.json` (glTF nhúng sẵn dữ liệu), xuất từ file `.blend` gốc bằng Blender 5.3. Đã nén lưới, đổi texture sang WebP. Tư thế và dáng đi được tạo trong code (`character.js`).
 - Theo điều khoản ShareAlike, các file mô hình đã chuyển đổi này cũng được phân phối theo CC BY-SA.
 
+## Icon: Game Icon Pack v1.4
+- Bộ icon người dùng cung cấp, cũng là bộ bản Sòng Đêm 2D đang dùng.
+- Trong game: `icons.js` chỉ gồm những icon cần dùng, chép từ các file SVG gốc.
+
 ## Thư viện
 - three.js r170 (MIT): `vendor/`.

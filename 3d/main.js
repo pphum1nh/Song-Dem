@@ -11,9 +11,12 @@ import { CHARACTERS, preload } from './character.js';
 import { createMenu } from './menu.js';
 import { createPhone, fmt } from './phone.js';
 import { buildInterior } from './interior.js';
-import { BANK } from './world.js';
+import { BANK, labelSprite } from './world.js';
+import { buildCasinoInterior } from './casino-interior.js';
+import { createCasinoGames } from './games.js';
+import { icon } from './icons.js';
 
-const SAVE_KEY = 'songdem3d.v2';
+const SAVE_KEY = 'songdem3d.v3'; // v3: thành phố mới (nhà nằm trong khu dân cư)
 const $ = (id) => document.getElementById(id);
 
 // ---------- Renderer / scene ----------
@@ -75,9 +78,9 @@ const ui = {
 let modalOpen = false;
 let nearby = null;
 
-const SUN = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.5" fill="currentColor"/><g stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></g></svg>';
-const MOON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/></svg>';
+const SUN = icon('sun'), MOON = icon('night');
 let iconIsMoon = null;
+$('menu').innerHTML = icon('menu'); $('phone').innerHTML = icon('mobile-phone'); $('jump').innerHTML = icon('arrow-up');
 
 function setClockUI() {
   ui.time.textContent = clock.label;
@@ -152,8 +155,14 @@ function enter(target) {
   if (!target) return;
   if (target.id === 'house') {
     fadeThen(() => setInside(true));
-  } else if (target.id === 'exit') {
-    fadeThen(() => setInside(false));
+  } else if (target.id === 'exit' || target.id === 'exit-casino') {
+    fadeThen(() => setInside(null));
+  } else if (target.id === 'casino') {
+    fadeThen(() => setInside('casino'));
+  } else if (target.id.startsWith('g-')) {
+    games.open(target.id.slice(2));
+  } else if (target.id === 'market') {
+    toast('Siêu thị sắp khai trương. Hãy quay lại sau nhé!');
   } else if (target.id === 'bed') {
     openModal('Giường ngủ', `Bây giờ là ${clock.label}, ngày ${clock.day}.`, [
       { label: 'Ngủ đến 7:00 sáng', run: () => { closeModal(); fadeThen(() => clock.advanceTo(7 * 60)); } },
@@ -167,31 +176,40 @@ function enter(target) {
     else openModal('BruhBank đã đóng cửa', `Quầy giao dịch mở từ 8:00 đến 17:00. Bây giờ là ${clock.label}. ATM bên cạnh vẫn hoạt động 24/7.`, [
       { label: 'Dùng ATM', run: () => bankDialog(true) }, { label: 'Đóng', run: closeModal },
     ]);
-  } else if (target.id === 'casino') {
-    openModal('Sòng Đêm', `Bản thử 3D: bên trong sòng bạc sẽ được dựng ở bước tiếp theo. Bây giờ là ${clock.label}.`, [
-      { label: 'Ra ngoài', run: closeModal },
-    ]);
   }
 }
 ui.action.addEventListener('click', () => enter(nearby));
 // ---------- Trong nhà / ngoài phố ----------
-let inside = false;
-let interior = null;
-function setInside(on) {
-  inside = on;
-  interior.setActive(on);
-  const home = world.interactables.find((i) => i.id === 'house');
-  if (on) { player.position.copy(interior.spawn); player.heading = Math.PI; cam.yaw = 0; cam.pitch = 0.62; cam.dist = 7; }
-  else { player.position.set(home.x, groundHeight(home.x, home.z + 0.5), home.z + 0.5); player.heading = 0; cam.yaw = 0; cam.pitch = 0.42; cam.dist = 8.5; }
+let inside = null; // null = ngoài phố, 'house' = trong nhà, 'casino' = trong Sòng Đêm
+let interior = null, hall = null;
+const roomOf = (it) => it.room || (it.indoor ? 'house' : null);
+function outsideSpot(room) {
+  const it = world.interactables.find((i) => i.id === (room === 'casino' ? 'casino' : 'house'));
+  return room === 'casino' ? { x: it.x, z: it.z + 1.2, h: 0 } : { x: it.spawnX, z: it.spawnZ, h: it.heading };
+}
+function setInside(room) {
+  const prev = inside;
+  inside = room;
+  interior.setActive(room === 'house'); hall.setActive(room === 'casino');
+  world.ground.visible = !room;
+  if (room) {
+    const sp = room === 'house' ? interior.spawn : hall.spawn;
+    player.position.copy(sp); player.heading = Math.PI; cam.yaw = 0;
+    cam.pitch = room === 'casino' ? 0.72 : 0.62; cam.dist = room === 'casino' ? 9.5 : 7;
+  } else {
+    const o = outsideSpot(prev);
+    player.position.set(o.x, groundHeight(o.x, o.z), o.z); player.heading = o.h; cam.yaw = o.h; cam.pitch = 0.42; cam.dist = 8.5;
+  }
   player.velocity.set(0, 0, 0); cam.curDist = cam.dist;
 }
 
 // ---------- Chỉ đường: cột sáng ở điểm đến ----------
 const PLACES = [
-  { id: 'house', name: 'Nhà', x: -48, z: 2.6, color: '#ffb46b' },
+  { id: 'house', name: 'Nhà', x: -31.8, z: 0, color: '#ffb46b' },
   { id: 'casino', name: 'Sòng Đêm', x: 0, z: 7.2, color: '#ff4fa3' },
   { id: 'bank', name: 'BruhBank', x: BANK.x, z: BANK.z - 6.5, color: '#4aa3ff' },
   { id: 'park', name: 'Công viên', x: 48, z: 0, color: '#6fdc9c' },
+  { id: 'market', name: 'Siêu thị', x: 48, z: 34, color: '#ffd36b' },
 ];
 let waypoint = null;
 const beacon = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 60, 20, 1, true),
@@ -203,15 +221,52 @@ function setWaypoint(id) {
   if (waypoint) { beacon.position.set(waypoint.x, 30, waypoint.z); beacon.material.color.set(waypoint.color); toast('Đã bật chỉ đường tới ' + waypoint.name + '.'); }
 }
 
+// ---------- Ngân hàng Đêm (vay nóng, như bản 2D) ----------
+const loan = { debt: 0, since: 0 };
+function borrow() {
+  if (loan.debt + 600 > 3000) { toast('Đã chạm mức nợ tối đa $3.000.'); return; }
+  if (!loan.debt) loan.since = clock.day;
+  loan.debt += 600; money.cash += 500; addLog('Vay Ngân hàng Đêm', 500); toast('Đã vay $500. Phải trả $600.'); save();
+}
+function repay() {
+  const v = Math.min(loan.debt, money.cash);
+  if (v <= 0) { toast('Ví không có tiền để trả nợ.'); return; }
+  money.cash -= v; loan.debt -= v; addLog('Trả nợ Ngân hàng Đêm', -v); if (!loan.debt) loan.since = 0;
+  toast(loan.debt ? `Đã trả ${fmt(v)}. Còn nợ ${fmt(loan.debt)}.` : 'Đã trả hết nợ.'); save();
+}
+let lastDay = 0;
+function checkLoan() {
+  if (clock.day === lastDay) return; lastDay = clock.day;
+  if (loan.debt && clock.day >= loan.since + 5) {
+    let take = Math.min(loan.debt, money.bank); money.bank -= take; loan.debt -= take; let total = take;
+    take = Math.min(loan.debt, money.cash); money.cash -= take; loan.debt -= take; total += take;
+    if (total) addLog('Bị Ngân hàng Đêm siết nợ', -total, true);
+    loan.since = clock.day;
+    toast(`Ngân hàng Đêm đã siết ${fmt(total)}.${loan.debt ? ' Vẫn còn nợ ' + fmt(loan.debt) + '.' : ''}`); save();
+  }
+}
+
+// ---------- Trò chơi trong Sòng Đêm ----------
+let horseStage = 1;
+const games = createCasinoGames({
+  cash: () => money.cash,
+  pay: (v, text) => { money.cash += v; if (Math.abs(v) >= 5) addLog(text, v); },
+  advance: (m) => clock.advanceBy(m),
+  horseStage: (n) => { if (n) horseStage = n; return horseStage; },
+  onOpen: () => input.setEnabled(false),
+  onClose: () => { if (!modalOpen) input.setEnabled(true); save(); },
+});
+
 const phone = createPhone({
   time: () => clock.label, day: () => clock.day, money: () => money, bankOpen,
-  player: () => ({ x: inside ? -48 : player.position.x, z: inside ? -4 : player.position.z, heading: player.heading }),
+  player: () => { const o = inside ? outsideSpot(inside) : null; return { x: o ? o.x : player.position.x, z: o ? o.z : player.position.z, heading: player.heading }; },
+  loan: () => ({ debt: loan.debt, daysLeft: loan.debt ? Math.max(0, loan.since + 5 - clock.day) : 0 }), borrow, repay,
   places: () => PLACES, waypoint: () => waypoint?.id, setWaypoint,
   speed: () => clock.speed, toggleSpeed: () => { clock.speed = clock.speed === 1 ? 30 : 1; },
   openMenu: () => openMenu(),
   onOpen: () => { input.setEnabled(false); }, onClose: () => { if (!modalOpen) input.setEnabled(true); },
 });
-$('phone').addEventListener('click', () => { if (!modalOpen && !menu.open) phone.open(); });
+$('phone').addEventListener('click', () => { if (!modalOpen && !menu.open && !games.isOpen) phone.open(); });
 $('jump').addEventListener('pointerdown', (e) => { e.preventDefault(); input.queueJump(); });
 
 function pickCharacter() {
@@ -227,19 +282,19 @@ function pickCharacter() {
 $('menu').addEventListener('click', openMenu);
 async function openMenu() {
   if (menu.open || modalOpen) return;
-  phone.close();
+  phone.close(); games.close();
   paused = true; input.setEnabled(false); save();
   const m = await menu.choose(true);
   if (m === 'new') {
-    await menu.curtain('new', async (step) => { step(1, 0.6); if (inside) setInside(false); clock.totalMinutes = 21 * 60; money.cash = 1000; money.bank = 0; money.log.length = 0; setWaypoint(null); goHome(); save(); });
+    await menu.curtain('new', async (step) => { step(1, 0.6); if (inside) setInside(null); clock.totalMinutes = 21 * 60; money.cash = 1000; money.bank = 0; money.log.length = 0; loan.debt = 0; loan.since = 0; setWaypoint(null); goHome(); save(); });
   } else menu.hide();
   paused = false; input.setEnabled(true);
   if (m === 'who') pickCharacter();
 }
-input.onAction = () => { if (modalOpen || phone.isOpen) return; enter(nearby); };
+input.onAction = () => { if (modalOpen || phone.isOpen || games.isOpen) return; enter(nearby); };
 addEventListener('keydown', (e) => {
   if (e.code !== 'Escape') return;
-  if (modalOpen) closeModal(); else if (!menu.open && !phone.isOpen && player) openMenu();
+  if (games.isOpen) games.close(); else if (modalOpen) closeModal(); else if (!menu.open && !phone.isOpen && player) openMenu();
 });
 
 // ---------- Vòng lặp ----------
@@ -267,7 +322,9 @@ function frame(now) {
   player.update(dt, elapsed, mx, mz, mv.run, world.colliders, groundHeight, inside ? Infinity : LIMIT, input.consumeJump());
   life.update(dt, elapsed, player.position, sky.night);
 
-  sky.update(clock.minuteOfDay, player.position, inside);
+  sky.update(clock.minuteOfDay, player.position, !!inside);
+  hall.update(elapsed);
+  checkLoan();
   if (waypoint) {
     const d = Math.hypot(player.position.x - waypoint.x, player.position.z - waypoint.z);
     beacon.visible = !inside && d > 5;
@@ -280,7 +337,7 @@ function frame(now) {
   // Điểm tương tác gần nhất
   let best = null, bestD = Infinity;
   for (const it of world.interactables) {
-    if (!!it.indoor !== inside) continue;
+    if (roomOf(it) !== inside) continue;
     const d = Math.hypot(player.position.x - it.x, player.position.z - it.z);
     if (d < it.r && d < bestD) { best = it; bestD = d; }
   }
@@ -303,7 +360,7 @@ function startLoop() {
 }
 
 // Móc kiểm thử (dùng cho chụp màn hình tự động)
-window.__songdem = { get inside() { return inside; }, setInside: (v) => setInside(v), money, phone: () => phone, setWaypoint: (v) => setWaypoint(v), renderer, scene, get life() { return life; }, get clock() { return clock; }, get player() { return player; }, cam, setMinute: (m) => { clock.totalMinutes = Math.floor(clock.totalMinutes / 1440) * 1440 + m; }, PITCH };
+window.__songdem = { games: () => games, loan, get inside() { return inside; }, setInside: (v) => setInside(v), money, phone: () => phone, setWaypoint: (v) => setWaypoint(v), renderer, scene, get life() { return life; }, get clock() { return clock; }, get player() { return player; }, cam, setMinute: (m) => { clock.totalMinutes = Math.floor(clock.totalMinutes / 1440) * 1440 + m; }, PITCH };
 
 // ---------- Menu chính → rèm tải → vào game ----------
 const has2D = /\/3d\/(index\.html)?$/.test(location.pathname);
@@ -332,16 +389,15 @@ if (first === 'new') { saved = null; try { localStorage.removeItem(SAVE_KEY); } 
 
 function goHome() {
   const home = world.interactables.find((i) => i.id === 'house');
-  player.position.set(home.x, groundHeight(home.x, home.z + 2.5), home.z + 2.5);
-  player.heading = 0;
-  cam.yaw = 0;
+  player.position.set(home.spawnX, groundHeight(home.spawnX, home.spawnZ), home.spawnZ);
+  player.heading = home.heading; cam.yaw = home.heading;
 }
 function save() {
   if (!clock) return;
   try {
-    const home = world.interactables.find((i) => i.id === 'house');
-    const px = inside ? home.x : player.position.x, pz = inside ? home.z + 0.5 : player.position.z;
-    localStorage.setItem(SAVE_KEY, JSON.stringify({ t: clock.totalMinutes, x: px, z: pz, h: player.heading, c: player.charName, m: money }));
+    const o = inside ? outsideSpot(inside) : null;
+    const px = o ? o.x : player.position.x, pz = o ? o.z : player.position.z;
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ t: clock.totalMinutes, x: px, z: pz, h: player.heading, c: player.charName, m: money, loan, hs: horseStage }));
   } catch (_) {}
 }
 
@@ -354,6 +410,7 @@ await menu.curtain(first, async (step) => {
   const furn = await furnPromise;
   let kitMat; kit.scene.traverse((o) => { if (o.isMesh && !kitMat) kitMat = o.material; });
   interior = buildInterior(scene, furn, kitMat, world.colliders, world.interactables);
+  hall = buildCasinoInterior(scene, kitMat, world.colliders, world.interactables, labelSprite);
   sky = createSky(scene);
   clock = new GameClock(21 * 60);
   player = new Player(scene);
@@ -365,6 +422,8 @@ await menu.curtain(first, async (step) => {
     clock.totalMinutes = saved.t;
     if (Number.isFinite(saved.x) && Number.isFinite(saved.z)) player.position.set(saved.x, groundHeight(saved.x, saved.z), saved.z);
     if (Number.isFinite(saved.h)) player.heading = saved.h;
+    if (saved.loan && Number.isFinite(saved.loan.debt)) { loan.debt = saved.loan.debt; loan.since = saved.loan.since || 0; }
+    if (Number.isFinite(saved.hs)) horseStage = saved.hs;
     if (saved.m && Number.isFinite(saved.m.cash)) { money.cash = saved.m.cash; money.bank = saved.m.bank || 0; money.log = Array.isArray(saved.m.log) ? saved.m.log : []; }
   }
   step(3, 0.9);
